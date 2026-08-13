@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.1.1",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-2.1.1.zip",
-  "sha256": "5899c8c5a85deca64bf28e680ac0d14ecbe982645271cf1d2f4b61ac49f85272",
-  "released_at": "2026-08-13T13:10:00-05:00",
-  "notes": "Emergency recovery release for the 2.1.0 video-check migration. It initializes the LearnPress course and section service independently, safely reuses any shell created before the interrupted migration, and preserves the seven topic mappings, final assessment, 46 instructional lessons, and locked 330-minute total."
+  "version": "2.2.0",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.2.0.zip",
+  "sha256": "e79c78598811e39aa99259b0d76c18076a2daa4f32a7f1e8f7f8eaa348004069",
+  "released_at": "2026-08-13T18:30:00-05:00",
+  "notes": "Core 2.2.0 corrective release."
 }
