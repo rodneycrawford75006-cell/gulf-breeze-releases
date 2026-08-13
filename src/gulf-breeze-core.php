@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Gulf Breeze Core
  * Description: Permanent modular foundation for Gulf Breeze configuration, course compliance, enrollment, payments, records, certificates, reporting, and system health.
- * Version: 1.9.0
+ * Version: 2.0.0
  * Author: Gulf Breeze Driving School Texas
  */
 
@@ -55,7 +55,7 @@ final class Gulf_Breeze_Configuration {
 
 	public function define_core_constants() {
 		if ( ! defined( 'GB_CORE_VERSION' ) ) {
-			define( 'GB_CORE_VERSION', '1.9.0' );
+			define( 'GB_CORE_VERSION', '2.0.0' );
 		}
 	}
 
@@ -1689,7 +1689,7 @@ final class Gulf_Breeze_Configuration {
 		}
 		$this->refresh_learnpress_course_cache($course_id); update_option('gb_curriculum_migration_version','1.8.0',false); update_option('gb_curriculum_migration_status',array('status'=>'success','message'=>'Adult English Topic 4.1.8 automatically loaded into '.$built.' lesson items; '.$minutes.' instructional minutes.','time'=>current_time('mysql',true)),false);
 		}
-		if(version_compare((string)get_option('gb_curriculum_migration_version',''),'1.9.0','>='))return;
+		if(version_compare((string)get_option('gb_curriculum_migration_version',''),'1.9.0','<')){
 		$registry=get_option(self::COURSE_OPTION,array()); $course_id=absint($registry['adult_en']['learnpress_course_id']??0); global $wpdb;
 		$section_name='Topic 4.1.9 — Classroom Progress Assessment'; $section_id=$course_id?absint($wpdb->get_var($wpdb->prepare("SELECT section_id FROM {$wpdb->learnpress_sections} WHERE section_course_id=%d AND section_name=%s LIMIT 1",$course_id,$section_name))):0; $section_curd=$course_id&&class_exists('LP_Section_CURD')?new LP_Section_CURD($course_id):null;
 		if(!$section_id||!$section_curd){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Topic 4.1.9 section is missing.','time'=>current_time('mysql',true)),false);return;}
@@ -1706,6 +1706,27 @@ final class Gulf_Breeze_Configuration {
 		update_post_meta($final_id,'_gb_assessment_key','adult_en_final'); update_post_meta($final_id,'_gb_poi_topic','4.1.9'); update_post_meta($final_id,'_gb_required_minutes',0); update_post_meta($final_id,'_gb_required_seconds',0); update_post_meta($final_id,'_lp_passing_grade','70'); update_post_meta($final_id,'_lp_review','no'); update_post_meta($final_id,'_lp_show_correct_review','no'); update_post_meta($final_id,'_lp_retake_count','-1');
 		$final_assigned=absint($wpdb->get_var($wpdb->prepare("SELECT section_id FROM {$wpdb->learnpress_section_items} WHERE item_id=%d LIMIT 1",$final_id))); if(!$final_assigned)$section_curd->add_items_section($section_id,array(array('id'=>$final_id,'type'=>LP_QUIZ_CPT)));
 		$this->refresh_learnpress_course_cache($course_id); update_option('gb_curriculum_migration_version','1.9.0',false); update_option('gb_curriculum_migration_status',array('status'=>'success','message'=>'Adult English Topic 4.1.9 automatically loaded into '.$built.' instructional-review lesson items; '.$minutes.' instructional minutes. A separate controlled final-assessment shell was added with zero seat time.','time'=>current_time('mysql',true)),false);
+		}
+		if(version_compare((string)get_option('gb_curriculum_migration_version',''),'2.0.0','>='))return;
+		$registry=get_option(self::COURSE_OPTION,array()); $course_id=absint($registry['adult_en']['learnpress_course_id']??0); global $wpdb;
+		$section_curd=$course_id&&class_exists('LP_Section_CURD')?new LP_Section_CURD($course_id):null;
+		if(!$course_id||!$section_curd){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Adult English course or LearnPress section service is unavailable.','time'=>current_time('mysql',true)),false);return;}
+		$topic_names=self::curriculum_blueprints()['adult_six_hour']['units']; $created=0; $verified=0;
+		foreach(range(2,8) as $topic_number){
+			$topic='4.1.'.$topic_number; $section_name='Topic '.$topic.' — '.$topic_names[$topic];
+			$section_id=absint($wpdb->get_var($wpdb->prepare("SELECT section_id FROM {$wpdb->learnpress_sections} WHERE section_course_id=%d AND section_name=%s LIMIT 1",$course_id,$section_name)));
+			if(!$section_id){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Required curriculum section is missing: '.$section_name,'time'=>current_time('mysql',true)),false);return;}
+			$key='adult_en_topic_'.$topic_number.'_participation';
+			$posts=get_posts(array('post_type'=>'lp_quiz','post_status'=>array('draft','pending','private','publish'),'meta_key'=>'_gb_assessment_key','meta_value'=>$key,'posts_per_page'=>1));
+			$title='Adult English Topic '.$topic.' Participation Check';
+			$content='This controlled participation check administers two questions from the reviewed 10-question Topic '.$topic.' bank. A score of 70 percent or higher is required. The check carries zero instructional seat time and does not change the locked 330-minute course total.';
+			if($posts){$quiz_id=absint($posts[0]->ID); $result=wp_update_post(array('ID'=>$quiz_id,'post_title'=>$title,'post_content'=>$content,'post_status'=>'publish'),true);}else{$result=wp_insert_post(array('post_type'=>'lp_quiz','post_title'=>$title,'post_content'=>$content,'post_status'=>'publish'),true); $quiz_id=is_wp_error($result)?0:absint($result); $created++;}
+			if(is_wp_error($result)||!$quiz_id){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Participation-check shell could not be created for Topic '.$topic.'.','time'=>current_time('mysql',true)),false);return;}
+			update_post_meta($quiz_id,'_gb_assessment_key',$key); update_post_meta($quiz_id,'_gb_poi_topic',$topic); update_post_meta($quiz_id,'_gb_required_minutes',0); update_post_meta($quiz_id,'_gb_required_seconds',0); update_post_meta($quiz_id,'_lp_passing_grade','70'); update_post_meta($quiz_id,'_lp_review','no'); update_post_meta($quiz_id,'_lp_show_correct_review','no'); update_post_meta($quiz_id,'_lp_retake_count','-1');
+			$assigned=absint($wpdb->get_var($wpdb->prepare("SELECT section_id FROM {$wpdb->learnpress_section_items} WHERE item_id=%d LIMIT 1",$quiz_id))); if(!$assigned)$section_curd->add_items_section($section_id,array(array('id'=>$quiz_id,'type'=>LP_QUIZ_CPT)));
+			$verified++;
+		}
+		$this->refresh_learnpress_course_cache($course_id); update_option('gb_curriculum_migration_version','2.0.0',false); update_option('gb_curriculum_migration_status',array('status'=>'success','message'=>'Adult English Topics 4.1.2–4.1.8 now contain '.$verified.' controlled participation-check shells ('.$created.' newly created), all with zero seat time. The instructional ledger remains 46 lessons / 330 minutes.','time'=>current_time('mysql',true)),false);
 	}
 
 	public function sanitize_course_registry( $submitted ) {
