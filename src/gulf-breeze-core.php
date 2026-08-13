@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Gulf Breeze Core
  * Description: Permanent modular foundation for Gulf Breeze configuration, course compliance, enrollment, payments, records, certificates, reporting, and system health.
- * Version: 2.0.0
+ * Version: 2.1.0
  * Author: Gulf Breeze Driving School Texas
  */
 
@@ -55,7 +55,7 @@ final class Gulf_Breeze_Configuration {
 
 	public function define_core_constants() {
 		if ( ! defined( 'GB_CORE_VERSION' ) ) {
-			define( 'GB_CORE_VERSION', '2.0.0' );
+			define( 'GB_CORE_VERSION', '2.1.0' );
 		}
 	}
 
@@ -1707,7 +1707,7 @@ final class Gulf_Breeze_Configuration {
 		$final_assigned=absint($wpdb->get_var($wpdb->prepare("SELECT section_id FROM {$wpdb->learnpress_section_items} WHERE item_id=%d LIMIT 1",$final_id))); if(!$final_assigned)$section_curd->add_items_section($section_id,array(array('id'=>$final_id,'type'=>LP_QUIZ_CPT)));
 		$this->refresh_learnpress_course_cache($course_id); update_option('gb_curriculum_migration_version','1.9.0',false); update_option('gb_curriculum_migration_status',array('status'=>'success','message'=>'Adult English Topic 4.1.9 automatically loaded into '.$built.' instructional-review lesson items; '.$minutes.' instructional minutes. A separate controlled final-assessment shell was added with zero seat time.','time'=>current_time('mysql',true)),false);
 		}
-		if(version_compare((string)get_option('gb_curriculum_migration_version',''),'2.0.0','>='))return;
+		if(version_compare((string)get_option('gb_curriculum_migration_version',''),'2.0.0','<')){
 		$registry=get_option(self::COURSE_OPTION,array()); $course_id=absint($registry['adult_en']['learnpress_course_id']??0); global $wpdb;
 		$section_curd=$course_id&&class_exists('LP_Section_CURD')?new LP_Section_CURD($course_id):null;
 		if(!$course_id||!$section_curd){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Adult English course or LearnPress section service is unavailable.','time'=>current_time('mysql',true)),false);return;}
@@ -1727,6 +1727,31 @@ final class Gulf_Breeze_Configuration {
 			$verified++;
 		}
 		$this->refresh_learnpress_course_cache($course_id); update_option('gb_curriculum_migration_version','2.0.0',false); update_option('gb_curriculum_migration_status',array('status'=>'success','message'=>'Adult English Topics 4.1.2–4.1.8 now contain '.$verified.' controlled participation-check shells ('.$created.' newly created), all with zero seat time. The instructional ledger remains 46 lessons / 330 minutes.','time'=>current_time('mysql',true)),false);
+		}
+		if(version_compare((string)get_option('gb_curriculum_migration_version',''),'2.1.0','>='))return;
+		$video_checks=array(
+			array('topic'=>'4.1.7','section'=>'Topic 4.1.7 — Cooperating with Other Roadway Users','lesson_key'=>'adult_en_037','assessment_key'=>'adult_en_csea_video_check','title'=>'Adult English CSEA Video Check'),
+			array('topic'=>'4.1.8','section'=>'Topic 4.1.8 — Managing Risk','lesson_key'=>'adult_en_043','assessment_key'=>'adult_en_water_safety_video_check','title'=>'Adult English Recreational Water Safety Video Check'),
+		);
+		$created=0; $positioned=0;
+		foreach($video_checks as $check){
+			$section_id=absint($wpdb->get_var($wpdb->prepare("SELECT section_id FROM {$wpdb->learnpress_sections} WHERE section_course_id=%d AND section_name=%s LIMIT 1",$course_id,$check['section'])));
+			$lesson_id=absint($wpdb->get_var($wpdb->prepare("SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key='_gb_blueprint_key' AND meta_value=%s LIMIT 1",$check['lesson_key'])));
+			if(!$section_id||!$lesson_id){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Required video lesson or section is missing for Topic '.$check['topic'].'.','time'=>current_time('mysql',true)),false);return;}
+			$posts=get_posts(array('post_type'=>'lp_quiz','post_status'=>array('draft','pending','private','publish'),'meta_key'=>'_gb_assessment_key','meta_value'=>$check['assessment_key'],'posts_per_page'=>1));
+			$content='This controlled check administers one question from the reviewed four-question video bank. An incorrect response requires the student to return to the required video before receiving a different question. This check carries zero instructional seat time.';
+			if($posts){$quiz_id=absint($posts[0]->ID); $result=wp_update_post(array('ID'=>$quiz_id,'post_title'=>$check['title'],'post_content'=>$content,'post_status'=>'publish'),true);}else{$result=wp_insert_post(array('post_type'=>'lp_quiz','post_title'=>$check['title'],'post_content'=>$content,'post_status'=>'publish'),true); $quiz_id=is_wp_error($result)?0:absint($result); $created++;}
+			if(is_wp_error($result)||!$quiz_id){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Video-check shell could not be created for Topic '.$check['topic'].'.','time'=>current_time('mysql',true)),false);return;}
+			update_post_meta($quiz_id,'_gb_assessment_key',$check['assessment_key']); update_post_meta($quiz_id,'_gb_poi_topic',$check['topic']); update_post_meta($quiz_id,'_gb_required_minutes',0); update_post_meta($quiz_id,'_gb_required_seconds',0); update_post_meta($quiz_id,'_lp_passing_grade','70'); update_post_meta($quiz_id,'_lp_review','no'); update_post_meta($quiz_id,'_lp_show_correct_review','no'); update_post_meta($quiz_id,'_lp_retake_count','-1');
+			$assigned=absint($wpdb->get_var($wpdb->prepare("SELECT section_id FROM {$wpdb->learnpress_section_items} WHERE item_id=%d LIMIT 1",$quiz_id))); if(!$assigned)$section_curd->add_items_section($section_id,array(array('id'=>$quiz_id,'type'=>LP_QUIZ_CPT)));
+			$rows=$wpdb->get_results($wpdb->prepare("SELECT section_item_id,item_id FROM {$wpdb->learnpress_section_items} WHERE section_id=%d ORDER BY item_order ASC,section_item_id ASC",$section_id),ARRAY_A); $ordered=array();
+			foreach($rows as $row){$iid=absint($row['item_id']); if($iid!==$quiz_id)$ordered[]=$iid; if($iid===$lesson_id)$ordered[]=$quiz_id;}
+			if(!in_array($quiz_id,$ordered,true))$ordered[]=$quiz_id;
+			foreach($ordered as $index=>$iid)$wpdb->update($wpdb->learnpress_section_items,array('item_order'=>(($index+1)*10)),array('section_id'=>$section_id,'item_id'=>$iid),array('%d'),array('%d','%d'));
+			$after=absint($wpdb->get_var($wpdb->prepare("SELECT item_id FROM {$wpdb->learnpress_section_items} WHERE section_id=%d AND item_order>(SELECT item_order FROM {$wpdb->learnpress_section_items} WHERE section_id=%d AND item_id=%d LIMIT 1) ORDER BY item_order ASC,section_item_id ASC LIMIT 1",$section_id,$section_id,$lesson_id)));
+			if($after!==$quiz_id){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Video-check placement verification failed for Topic '.$check['topic'].'.','time'=>current_time('mysql',true)),false);return;} $positioned++;
+		}
+		$this->refresh_learnpress_course_cache($course_id); update_option('gb_curriculum_migration_version','2.1.0',false); update_option('gb_curriculum_migration_status',array('status'=>'success','message'=>'Two zero-seat-time video-check shells were verified immediately after the CSEA and recreational-water-safety video lessons ('.$created.' newly created). The instructional ledger remains 46 lessons / 330 minutes.','time'=>current_time('mysql',true)),false);
 	}
 
 	public function sanitize_course_registry( $submitted ) {

@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.0.0",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-2.0.0.zip",
-  "sha256": "2a4884efbb50fa95307539e2fbdc8ee3455ee2bb9a45332bfb0018453510e578",
-  "released_at": "2026-08-13T11:45:00-05:00",
-  "notes": "Adds seven zero-seat-time Adult English participation-check shells, one after each Topic 4.1.2 through 4.1.8 section. The internal question banks remain outside the visible curriculum, and the verified instructional ledger remains exactly 46 lessons / 330 minutes."
+  "version": "2.1.0",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-2.1.0.zip",
+  "sha256": "e196cc44be778cb1e2db7fb5e3a5c59127a22d82cfd786c6c7d026f84eef0cc1",
+  "released_at": "2026-08-13T12:10:00-05:00",
+  "notes": "Adds and position-verifies two zero-seat-time video-check shells immediately after the required CSEA and recreational-water-safety videos. The seven topic participation mappings and final assessment remain unchanged, and the verified instructional ledger remains exactly 46 lessons / 330 minutes."
 }
