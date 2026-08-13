@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "1.7.0",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-1.7.0.zip",
-  "sha256": "345acf06c92e47c057bd7a46994e5d56457044e1951a94a4777d5103fff56e60",
-  "released_at": "2026-08-13T08:15:42-05:00",
-  "notes": "Verified automatic migration for Adult English Topic 4.1.7: six official-source lessons totaling 53 instructional minutes, including shared-roadway safety, work zones, crash duties and Good Samaritan law, cargo and towing, the required Community Safety Education Act video, and the Texas Driving with Disabilities Program. Existing Topic 4.1.6 and timer records are preserved."
+  "version": "1.8.0",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-1.8.0.zip",
+  "sha256": "b36de724e8f30b31dd0d287cfff980b458f5052fd45bd362e9ef1898250cb697",
+  "released_at": "2026-08-13T08:45:00-05:00",
+  "notes": "Verified automatic migration for Adult English Topic 4.1.8: six official-source lessons totaling 43 instructional minutes, covering collision-risk management, distraction and fatigue, night and adverse-condition driving, street racing and restraints, human-trafficking indicators and reporting, and the Legislature-mandated TPWD recreational-water-safety video. Earlier curriculum and timer records are preserved."
 }
