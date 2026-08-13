@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "1.6.1",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-1.6.1.zip",
-  "sha256": "9a37d69eb5e2d42056a55ef8037feab40cb7bb9e732d3e3182477b54f2057990",
-  "released_at": "2026-08-13T07:37:50-05:00",
-  "notes": "Read-only Adult English timer audit for all 46 LearnPress lessons and the exact 330-minute ledger, including migration status, duplicate/missing detection, course attachment checks, topic totals, and administrator CSV export. No curriculum or student records are modified."
+  "version": "1.7.0",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-1.7.0.zip",
+  "sha256": "345acf06c92e47c057bd7a46994e5d56457044e1951a94a4777d5103fff56e60",
+  "released_at": "2026-08-13T08:15:42-05:00",
+  "notes": "Verified automatic migration for Adult English Topic 4.1.7: six official-source lessons totaling 53 instructional minutes, including shared-roadway safety, work zones, crash duties and Good Samaritan law, cargo and towing, the required Community Safety Education Act video, and the Texas Driving with Disabilities Program. Existing Topic 4.1.6 and timer records are preserved."
 }
