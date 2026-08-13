@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "1.8.0",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-1.8.0.zip",
-  "sha256": "b36de724e8f30b31dd0d287cfff980b458f5052fd45bd362e9ef1898250cb697",
-  "released_at": "2026-08-13T08:45:00-05:00",
-  "notes": "Verified automatic migration for Adult English Topic 4.1.8: six official-source lessons totaling 43 instructional minutes, covering collision-risk management, distraction and fatigue, night and adverse-condition driving, street racing and restraints, human-trafficking indicators and reporting, and the Legislature-mandated TPWD recreational-water-safety video. Earlier curriculum and timer records are preserved."
+  "version": "1.9.0",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-1.9.0.zip",
+  "sha256": "17bec6fb028bb77d4814107aa67f783170353772efb480409a2c88215e7b5197",
+  "released_at": "2026-08-13T09:00:03-05:00",
+  "notes": "Verified automatic migration for Adult English Topic 4.1.9: three official-source instructional-review lessons totaling 52 minutes plus a separate zero-seat-time final-assessment shell. The locked Adult English instructional total remains 330 minutes. Core status now reports Course Mastery Gate and Video Quiz Gate readiness without duplicating their enforcement responsibilities."
 }
