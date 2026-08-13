@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Gulf Breeze Core
  * Description: Permanent modular foundation for Gulf Breeze configuration, course compliance, enrollment, payments, records, certificates, reporting, and system health.
- * Version: 1.6.0
+ * Version: 1.6.1
  * Author: Gulf Breeze Driving School Texas
  */
 
@@ -36,6 +36,7 @@ final class Gulf_Breeze_Configuration {
 		add_action( 'admin_post_gb_build_adult_topic_three', array( $this, 'build_adult_topic_three' ) );
 		add_action( 'admin_post_gb_build_adult_topic_four', array( $this, 'build_adult_topic_four' ) );
 		add_action( 'admin_post_gb_build_adult_topic_five', array( $this, 'build_adult_topic_five' ) );
+		add_action( 'admin_post_gb_export_timer_audit', array( $this, 'export_timer_audit' ) );
 		add_action( 'init', array( $this, 'install_seat_time_schema' ), 5 );
 		add_action( 'init', array( $this, 'block_early_lesson_completion' ), 0 );
 		add_action( 'wp_ajax_gb_seat_start', array( $this, 'ajax_seat_start' ) );
@@ -54,7 +55,7 @@ final class Gulf_Breeze_Configuration {
 
 	public function define_core_constants() {
 		if ( ! defined( 'GB_CORE_VERSION' ) ) {
-			define( 'GB_CORE_VERSION', '1.6.0' );
+			define( 'GB_CORE_VERSION', '1.6.1' );
 		}
 	}
 
@@ -971,6 +972,161 @@ final class Gulf_Breeze_Configuration {
 			'gulf-breeze-curriculum-blueprint',
 			array( $this, 'render_curriculum_blueprint' )
 		);
+		add_submenu_page(
+			self::PAGE,
+			'Adult English Timer Audit',
+			'Timer Audit',
+			'manage_options',
+			'gulf-breeze-timer-audit',
+			array( $this, 'render_timer_audit' )
+		);
+	}
+
+	private function adult_timer_audit_rows() {
+		$registry  = get_option( self::COURSE_OPTION, array() );
+		$course_id = absint( $registry['adult_en']['learnpress_course_id'] ?? 0 );
+		$rows      = array();
+		global $wpdb;
+
+		foreach ( self::adult_english_crosswalk() as $index => $lesson ) {
+			$key   = 'adult_en_' . str_pad( (string) ( $index + 1 ), 3, '0', STR_PAD_LEFT );
+			$posts = get_posts(
+				array(
+					'post_type'      => 'lp_lesson',
+					'post_status'    => array( 'publish', 'draft', 'private', 'pending' ),
+					'meta_key'       => '_gb_blueprint_key',
+					'meta_value'     => $key,
+					'posts_per_page' => -1,
+					'orderby'        => 'ID',
+					'order'          => 'ASC',
+				)
+			);
+			$post = 1 === count( $posts ) ? $posts[0] : null;
+			$lesson_id = $post ? absint( $post->ID ) : 0;
+			$section_id = 0;
+			$attached_course_id = 0;
+			if ( $lesson_id ) {
+				$section_id = absint( $wpdb->get_var( $wpdb->prepare( "SELECT section_id FROM {$wpdb->learnpress_section_items} WHERE item_id = %d LIMIT 1", $lesson_id ) ) );
+				if ( $section_id ) {
+					$attached_course_id = absint( $wpdb->get_var( $wpdb->prepare( "SELECT section_course_id FROM {$wpdb->learnpress_sections} WHERE section_id = %d LIMIT 1", $section_id ) ) );
+				}
+			}
+
+			$expected_minutes  = absint( $lesson['minutes'] );
+			$expected_seconds  = $expected_minutes * 60;
+			$installed_minutes = $lesson_id ? absint( get_post_meta( $lesson_id, '_gb_required_minutes', true ) ) : 0;
+			$installed_seconds = $lesson_id ? absint( get_post_meta( $lesson_id, '_gb_required_seconds', true ) ) : 0;
+			$course_key        = $lesson_id ? (string) get_post_meta( $lesson_id, '_gb_course_key', true ) : '';
+			$content_status    = $lesson_id ? (string) get_post_meta( $lesson_id, '_gb_content_status', true ) : '';
+			$content_present   = $post && '' !== trim( wp_strip_all_tags( $post->post_content ) );
+			$timer_exact       = $lesson_id && $expected_minutes === $installed_minutes && $expected_seconds === $installed_seconds;
+			$attached          = $course_id && $attached_course_id === $course_id;
+			$identity_exact    = 1 === count( $posts ) && 'adult_en' === $course_key;
+
+			$rows[] = array(
+				'number'            => $index + 1,
+				'key'               => $key,
+				'topic'             => $lesson['topic'],
+				'expected_title'    => $lesson['lesson'],
+				'installed_title'   => $post ? $post->post_title : '',
+				'lesson_id'         => $lesson_id,
+				'duplicate_count'   => count( $posts ),
+				'expected_minutes'  => $expected_minutes,
+				'expected_seconds'  => $expected_seconds,
+				'installed_minutes' => $installed_minutes,
+				'installed_seconds' => $installed_seconds,
+				'content_status'    => $content_status,
+				'content_present'   => $content_present,
+				'attached'          => $attached,
+				'timer_exact'       => $timer_exact,
+				'identity_exact'    => $identity_exact,
+				'result'            => $timer_exact && $attached && $identity_exact ? 'EXACT' : 'REPAIR REQUIRED',
+			);
+		}
+
+		return $rows;
+	}
+
+	public function render_timer_audit() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$rows = $this->adult_timer_audit_rows();
+		$expected_total = 0;
+		$installed_total = 0;
+		$exact_count = 0;
+		$topic_totals = array();
+		foreach ( $rows as $row ) {
+			$expected_total += $row['expected_seconds'];
+			$installed_total += $row['installed_seconds'];
+			$exact_count += 'EXACT' === $row['result'] ? 1 : 0;
+			if ( ! isset( $topic_totals[ $row['topic'] ] ) ) {
+				$topic_totals[ $row['topic'] ] = array( 'expected' => 0, 'installed' => 0, 'exact' => 0, 'count' => 0 );
+			}
+			$topic_totals[ $row['topic'] ]['expected'] += $row['expected_seconds'];
+			$topic_totals[ $row['topic'] ]['installed'] += $row['installed_seconds'];
+			$topic_totals[ $row['topic'] ]['exact'] += 'EXACT' === $row['result'] ? 1 : 0;
+			$topic_totals[ $row['topic'] ]['count']++;
+		}
+		$migration_version = (string) get_option( 'gb_curriculum_migration_version', '' );
+		$migration_status = get_option( 'gb_curriculum_migration_status', array() );
+		$export_url = wp_nonce_url( admin_url( 'admin-post.php?action=gb_export_timer_audit' ), 'gb_export_timer_audit' );
+		?>
+		<div class="wrap">
+			<h1>Adult English Timer Audit</h1>
+			<p>This page is read-only. It compares the 46 installed LearnPress lessons with the locked 330-minute Gulf Breeze POI ledger and does not modify course records.</p>
+			<table class="widefat striped" style="max-width:1000px"><tbody>
+				<tr><th>Core version</th><td><?php echo esc_html( defined( 'GB_CORE_VERSION' ) ? GB_CORE_VERSION : '' ); ?></td></tr>
+				<tr><th>Curriculum migration version</th><td><?php echo esc_html( $migration_version ?: 'Not recorded' ); ?></td></tr>
+				<tr><th>Last migration status</th><td><?php echo esc_html( is_array( $migration_status ) ? ( $migration_status['message'] ?? 'Not recorded' ) : 'Not recorded' ); ?></td></tr>
+				<tr><th>Exact lesson records</th><td><strong style="color:<?php echo 46 === $exact_count ? '#16752a' : '#b32d2e'; ?>"><?php echo esc_html( $exact_count ); ?>/46</strong></td></tr>
+				<tr><th>Timer total</th><td><strong style="color:<?php echo $expected_total === $installed_total ? '#16752a' : '#b32d2e'; ?>"><?php echo esc_html( round( $installed_total / 60 ) ); ?> installed / <?php echo esc_html( round( $expected_total / 60 ) ); ?> required minutes</strong></td></tr>
+			</tbody></table>
+			<p><a class="button" href="<?php echo esc_url( $export_url ); ?>">Download Timer Audit CSV</a></p>
+
+			<h2>Topic Totals</h2>
+			<table class="widefat striped" style="max-width:800px"><thead><tr><th>Topic</th><th>Required</th><th>Installed</th><th>Exact lessons</th><th>Result</th></tr></thead><tbody>
+			<?php foreach ( $topic_totals as $topic => $total ) : $topic_exact = $total['expected'] === $total['installed'] && $total['exact'] === $total['count']; ?>
+				<tr><td><code><?php echo esc_html( $topic ); ?></code></td><td><?php echo esc_html( round( $total['expected'] / 60 ) ); ?> min</td><td><?php echo esc_html( round( $total['installed'] / 60 ) ); ?> min</td><td><?php echo esc_html( $total['exact'] . '/' . $total['count'] ); ?></td><td><?php echo $topic_exact ? '<strong style="color:#16752a">EXACT</strong>' : '<strong style="color:#b32d2e">REVIEW</strong>'; ?></td></tr>
+			<?php endforeach; ?>
+			</tbody></table>
+
+			<h2>Lesson Detail</h2>
+			<table class="widefat striped"><thead><tr><th>#</th><th>Topic</th><th>Lesson</th><th>ID</th><th>Required</th><th>Installed</th><th>Attached</th><th>Content</th><th>Status</th><th>Result</th></tr></thead><tbody>
+			<?php foreach ( $rows as $row ) : ?>
+				<tr>
+					<td><?php echo esc_html( $row['number'] ); ?></td>
+					<td><code><?php echo esc_html( $row['topic'] ); ?></code></td>
+					<td><?php echo esc_html( $row['installed_title'] ?: $row['expected_title'] ); ?><?php echo $row['duplicate_count'] > 1 ? '<br><strong style="color:#b32d2e">DUPLICATES: ' . esc_html( $row['duplicate_count'] ) . '</strong>' : ''; ?></td>
+					<td><?php echo $row['lesson_id'] ? esc_html( $row['lesson_id'] ) : '<strong style="color:#b32d2e">MISSING</strong>'; ?></td>
+					<td><?php echo esc_html( $row['expected_minutes'] ); ?> min<br><small><?php echo esc_html( $row['expected_seconds'] ); ?> sec</small></td>
+					<td><?php echo esc_html( $row['installed_minutes'] ); ?> min<br><small><?php echo esc_html( $row['installed_seconds'] ); ?> sec</small></td>
+					<td><?php echo $row['attached'] ? '<strong style="color:#16752a">YES</strong>' : '<strong style="color:#b32d2e">NO</strong>'; ?></td>
+					<td><?php echo $row['content_present'] ? '<strong style="color:#16752a">PRESENT</strong>' : 'Shell only'; ?></td>
+					<td><code><?php echo esc_html( $row['content_status'] ?: 'not recorded' ); ?></code></td>
+					<td><?php echo 'EXACT' === $row['result'] ? '<strong style="color:#16752a">EXACT</strong>' : '<strong style="color:#b32d2e">REPAIR REQUIRED</strong>'; ?></td>
+				</tr>
+			<?php endforeach; ?>
+			</tbody></table>
+		</div>
+		<?php
+	}
+
+	public function export_timer_audit() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to export this audit.', 'gulf-breeze-core' ) );
+		}
+		check_admin_referer( 'gb_export_timer_audit' );
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename=gulf-breeze-adult-english-timer-audit-' . gmdate( 'Y-m-d-His' ) . '.csv' );
+		$out = fopen( 'php://output', 'w' );
+		fputcsv( $out, array( 'number', 'blueprint_key', 'topic', 'expected_title', 'installed_title', 'lesson_id', 'matching_records', 'required_minutes', 'required_seconds', 'installed_minutes', 'installed_seconds', 'attached_to_adult_english', 'content_present', 'content_status', 'result' ) );
+		foreach ( $this->adult_timer_audit_rows() as $row ) {
+			fputcsv( $out, array( $row['number'], $row['key'], $row['topic'], $row['expected_title'], $row['installed_title'], $row['lesson_id'], $row['duplicate_count'], $row['expected_minutes'], $row['expected_seconds'], $row['installed_minutes'], $row['installed_seconds'], $row['attached'] ? 'yes' : 'no', $row['content_present'] ? 'yes' : 'no', $row['content_status'], $row['result'] ) );
+		}
+		fclose( $out );
+		exit;
 	}
 
 	public function render_status_page() {

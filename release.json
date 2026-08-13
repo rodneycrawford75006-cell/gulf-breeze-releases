@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "1.6.0",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-1.6.0.zip",
-  "sha256": "3787eb6ca34ef15a57a65f74990c1377fe756208c8f38c8bed31005d4df05b8a",
-  "released_at": "2026-08-12T22:00:00-05:00",
-  "notes": "Adult English Topic 4.1.6: five lessons, 37 instructional minutes, exact POI mapping, secure timers, and automatic idempotent curriculum migration."
+  "version": "1.6.1",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-1.6.1.zip",
+  "sha256": "9a37d69eb5e2d42056a55ef8037feab40cb7bb9e732d3e3182477b54f2057990",
+  "released_at": "2026-08-13T07:37:50-05:00",
+  "notes": "Read-only Adult English timer audit for all 46 LearnPress lessons and the exact 330-minute ledger, including migration status, duplicate/missing detection, course attachment checks, topic totals, and administrator CSV export. No curriculum or student records are modified."
 }
