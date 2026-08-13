@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.1.0",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-2.1.0.zip",
-  "sha256": "e196cc44be778cb1e2db7fb5e3a5c59127a22d82cfd786c6c7d026f84eef0cc1",
-  "released_at": "2026-08-13T12:10:00-05:00",
-  "notes": "Adds and position-verifies two zero-seat-time video-check shells immediately after the required CSEA and recreational-water-safety videos. The seven topic participation mappings and final assessment remain unchanged, and the verified instructional ledger remains exactly 46 lessons / 330 minutes."
+  "version": "2.1.1",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/releases/gulf-breeze-core-2.1.1.zip",
+  "sha256": "5899c8c5a85deca64bf28e680ac0d14ecbe982645271cf1d2f4b61ac49f85272",
+  "released_at": "2026-08-13T13:10:00-05:00",
+  "notes": "Emergency recovery release for the 2.1.0 video-check migration. It initializes the LearnPress course and section service independently, safely reuses any shell created before the interrupted migration, and preserves the seven topic mappings, final assessment, 46 instructional lessons, and locked 330-minute total."
 }

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Gulf Breeze Core
  * Description: Permanent modular foundation for Gulf Breeze configuration, course compliance, enrollment, payments, records, certificates, reporting, and system health.
- * Version: 2.1.0
+ * Version: 2.1.1
  * Author: Gulf Breeze Driving School Texas
  */
 
@@ -55,7 +55,7 @@ final class Gulf_Breeze_Configuration {
 
 	public function define_core_constants() {
 		if ( ! defined( 'GB_CORE_VERSION' ) ) {
-			define( 'GB_CORE_VERSION', '2.1.0' );
+			define( 'GB_CORE_VERSION', '2.1.1' );
 		}
 	}
 
@@ -1729,6 +1729,14 @@ final class Gulf_Breeze_Configuration {
 		$this->refresh_learnpress_course_cache($course_id); update_option('gb_curriculum_migration_version','2.0.0',false); update_option('gb_curriculum_migration_status',array('status'=>'success','message'=>'Adult English Topics 4.1.2–4.1.8 now contain '.$verified.' controlled participation-check shells ('.$created.' newly created), all with zero seat time. The instructional ledger remains 46 lessons / 330 minutes.','time'=>current_time('mysql',true)),false);
 		}
 		if(version_compare((string)get_option('gb_curriculum_migration_version',''),'2.1.0','>='))return;
+		// The 2.1 migration must initialize its own dependencies. On an already
+		// migrated 2.0 installation, the preceding 2.0 block is skipped and its
+		// local variables do not exist.
+		$registry=get_option(self::COURSE_OPTION,array());
+		$course_id=absint($registry['adult_en']['learnpress_course_id']??0);
+		global $wpdb;
+		$section_curd=$course_id&&class_exists('LP_Section_CURD')?new LP_Section_CURD($course_id):null;
+		if(!$course_id||!$section_curd){update_option('gb_curriculum_migration_status',array('status'=>'error','message'=>'Adult English course or LearnPress section service is unavailable for the video-check migration.','time'=>current_time('mysql',true)),false);return;}
 		$video_checks=array(
 			array('topic'=>'4.1.7','section'=>'Topic 4.1.7 — Cooperating with Other Roadway Users','lesson_key'=>'adult_en_037','assessment_key'=>'adult_en_csea_video_check','title'=>'Adult English CSEA Video Check'),
 			array('topic'=>'4.1.8','section'=>'Topic 4.1.8 — Managing Risk','lesson_key'=>'adult_en_043','assessment_key'=>'adult_en_water_safety_video_check','title'=>'Adult English Recreational Water Safety Video Check'),
