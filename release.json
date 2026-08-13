@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.2.0",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.2.0.zip",
-  "sha256": "e79c78598811e39aa99259b0d76c18076a2daa4f32a7f1e8f7f8eaa348004069",
-  "released_at": "2026-08-13T18:30:00-05:00",
-  "notes": "Core 2.2.0 corrective release."
+  "version": "2.2.1",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.2.1.zip",
+  "sha256": "0c314e5b55089d63fca9234ec03206a6f553b6b4188707f585a394519d353904",
+  "released_at": "2026-08-13T18:43:00-05:00",
+  "notes": "Core 2.2.1 corrective recovery release. Replaces cached LearnPress section insertion during the video-bank migration with verified direct section-table placement, preserves placeholder-to-bank gate mappings, remains retry-safe after the failed 2.2.0 migration, and preserves the Adult English 46-lesson / 330-minute regulated ledger."
 }
