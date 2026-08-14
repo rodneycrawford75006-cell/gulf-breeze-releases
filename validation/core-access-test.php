@@ -54,6 +54,22 @@ $wpdb->insert( $wpdb->prefix . 'learnpress_sections', array(
 $section_id = (int) $wpdb->insert_id;
 $wpdb->insert( $wpdb->prefix . 'learnpress_section_items', array( 'section_id' => $section_id, 'item_id' => $lesson_one_id, 'item_order' => 1, 'item_type' => 'lp_lesson' ) );
 $wpdb->insert( $wpdb->prefix . 'learnpress_section_items', array( 'section_id' => $section_id, 'item_id' => $lesson_two_id, 'item_order' => 2, 'item_type' => 'lp_lesson' ) );
+$enrolled = $wpdb->insert(
+	$wpdb->prefix . 'learnpress_user_items',
+	array(
+		'user_id'    => $tester_id,
+		'item_id'    => $course_id,
+		'item_type'  => 'lp_course',
+		'status'     => 'enrolled',
+		'start_time' => current_time( 'mysql' ),
+		'ref_id'     => 0,
+		'ref_type'   => '',
+		'parent_id'  => 0,
+	)
+);
+if ( false === $enrolled ) {
+	throw new RuntimeException( 'Could not enroll the disposable validation tester.' );
+}
 flush_rewrite_rules( false );
 
 $base_registry = array(
