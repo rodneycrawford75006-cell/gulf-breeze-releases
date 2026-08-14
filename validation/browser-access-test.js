@@ -26,7 +26,7 @@ const fs = require('fs');
   }, homeUrl);
 
   await Promise.all([
-    studentPage.waitForURL(homeUrl, { waitUntil: 'domcontentloaded' }),
+    studentPage.waitForNavigation({ waitUntil: 'domcontentloaded' }),
     studentPage.locator('#wp-submit').click(),
   ]);
 
