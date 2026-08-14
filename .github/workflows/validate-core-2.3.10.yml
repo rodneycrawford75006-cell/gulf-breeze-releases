@@ -1,0 +1,74 @@
+name: Validate Gulf Breeze Core 2.3.10
+
+on:
+  push:
+    branches:
+      - agent/core-2.3.10-validation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli
+          coverage: none
+
+      - name: Verify archive and PHP syntax
+        run: |
+          set -euo pipefail
+          test "$(unzip -Z1 validation/gulf-breeze-core-2.3.10-dev-checkpoint.zip | sed -n '1p' | cut -d/ -f1)" = "gulf-breeze-core"
+          rm -rf /tmp/gb-core
+          mkdir -p /tmp/gb-core
+          unzip -q validation/gulf-breeze-core-2.3.10-dev-checkpoint.zip -d /tmp/gb-core
+          find /tmp/gb-core/gulf-breeze-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-core/gulf-breeze-core
+
+      - name: Install disposable WordPress
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x /tmp/wp-cli.phar
+          mkdir -p /tmp/wordpress
+          /tmp/wp-cli.phar core download --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar config create --path=/tmp/wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --skip-check --quiet
+          /tmp/wp-cli.phar core install --path=/tmp/wordpress --url=http://gulf-breeze.test --title='Gulf Breeze Validation' --admin_user=admin --admin_password='validation-only-password' --admin_email=validation@example.invalid --skip-email --quiet
+          /tmp/wp-cli.phar plugin install learnpress --activate --path=/tmp/wordpress --quiet
+
+      - name: Test upgrade and option preservation
+        run: |
+          set -euo pipefail
+          WP='/tmp/wp-cli.phar --path=/tmp/wordpress'
+          $WP plugin install "https://raw.githubusercontent.com/rodneycrawford75006-cell/gulf-breeze-releases/main/gulf-breeze-core-2.2.1.zip" --activate --quiet
+          $WP option update gb_config '{"legal_name":"VALIDATION SENTINEL","timezone":"America/Chicago"}' --format=json
+          $WP plugin install "$GITHUB_WORKSPACE/validation/gulf-breeze-core-2.3.10-dev-checkpoint.zip" --force --quiet
+          $WP plugin activate gulf-breeze-core --quiet
+          $WP eval 'if (!class_exists("Gulf_Breeze_Configuration")) { throw new Exception("Core class missing after upgrade."); } if (GB_CORE_VERSION !== "2.3.10-dev") { throw new Exception("Unexpected Core version: ".GB_CORE_VERSION); } $cfg=get_option("gb_config",array()); if (($cfg["legal_name"] ?? "") !== "VALIDATION SENTINEL") { throw new Exception("Configuration was not preserved."); } do_action("admin_init"); echo "Upgrade and option preservation passed.\n";'
+
+      - name: Test controlled internal access
+        run: |
+          set -euo pipefail
+          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/validation/core-access-test.php" --path=/tmp/wordpress
+
