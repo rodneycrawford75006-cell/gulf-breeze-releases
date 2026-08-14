@@ -8,9 +8,15 @@ const fs = require('fs');
   const studentPage = await student.newPage();
 
   await studentPage.goto(`${origin}/wp-login.php`);
-  const loginUrl = new URL(studentPage.url());
-  const basePath = loginUrl.pathname.replace(/\/wp-login\.php$/, '');
-  const baseUrl = `${loginUrl.origin}${basePath}`;
+  await studentPage.locator('#loginform').waitFor({ state: 'visible' });
+  const formAction = await studentPage.locator('#loginform').getAttribute('action');
+  if (!formAction) {
+    throw new Error('WordPress login form did not expose an action URL.');
+  }
+
+  const canonicalLoginUrl = new URL(formAction, studentPage.url());
+  const basePath = canonicalLoginUrl.pathname.replace(/\/wp-login\.php$/, '');
+  const baseUrl = `${canonicalLoginUrl.origin}${basePath}`;
   const homeUrl = `${baseUrl}/`;
 
   await studentPage.locator('#user_login').fill('gb_validation_tester');
