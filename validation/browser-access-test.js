@@ -2,20 +2,25 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 
 (async () => {
-  const baseUrl = 'http://127.0.0.1:8080';
+  const origin = 'http://127.0.0.1:8080';
   const browser = await chromium.launch({ headless: true });
   const student = await browser.newContext();
   const studentPage = await student.newPage();
 
-  await studentPage.goto(`${baseUrl}/wp-login.php`);
+  await studentPage.goto(`${origin}/wp-login.php`);
+  const loginUrl = new URL(studentPage.url());
+  const basePath = loginUrl.pathname.replace(/\/wp-login\.php$/, '');
+  const baseUrl = `${loginUrl.origin}${basePath}`;
+  const homeUrl = `${baseUrl}/`;
+
   await studentPage.locator('#user_login').fill('gb_validation_tester');
   await studentPage.locator('#user_pass').fill('validation-only-password');
   await studentPage.locator('input[name="redirect_to"]').evaluate((input, url) => {
     input.value = url;
-  }, `${baseUrl}/`);
+  }, homeUrl);
 
   await Promise.all([
-    studentPage.waitForURL(`${baseUrl}/`, { waitUntil: 'domcontentloaded' }),
+    studentPage.waitForURL(homeUrl, { waitUntil: 'domcontentloaded' }),
     studentPage.locator('#wp-submit').click(),
   ]);
 
@@ -30,7 +35,7 @@ const fs = require('fs');
   }
 
   const courseId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/course-id.txt`, 'utf8').trim();
-  const courseUrl = `${baseUrl}/?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
+  const courseUrl = `${homeUrl}?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
 
   const studentResponse = await studentPage.goto(courseUrl);
   if (!studentResponse || studentResponse.status() !== 200) {
