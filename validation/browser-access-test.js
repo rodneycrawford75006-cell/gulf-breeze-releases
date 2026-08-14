@@ -2,18 +2,28 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 
 (async () => {
-  const origin = 'http://127.0.0.1:8080';
   const browser = await chromium.launch({ headless: true });
   const student = await browser.newContext();
-
-  const authCookie = JSON.parse(
-    fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/auth-cookie.json`, 'utf8')
-  );
-  await student.addCookies([authCookie]);
-
   const studentPage = await student.newPage();
+
+  await studentPage.goto('http://127.0.0.1:8080/wp-login.php');
+  await studentPage.locator('#user_login').fill('gb_validation_tester');
+  await studentPage.locator('#user_pass').fill('validation-only-password');
+  await Promise.all([
+    studentPage.waitForNavigation(),
+    studentPage.locator('#wp-submit').click(),
+  ]);
+
+  await studentPage.goto('http://127.0.0.1:8080/');
+  const loggedIn = await studentPage.locator('body').evaluate((body) => body.classList.contains('logged-in'));
+  if (!loggedIn) {
+    throw new Error('Synthetic student login did not persist in Chromium.');
+  }
+
   const courseId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/course-id.txt`, 'utf8').trim();
-  const courseUrl = `${origin}/?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
+  const lessonOneId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/lesson-one-id.txt`, 'utf8').trim();
+  const lessonTwoId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/lesson-two-id.txt`, 'utf8').trim();
+  const courseUrl = `http://127.0.0.1:8080/?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
 
   const studentResponse = await studentPage.goto(courseUrl);
   if (!studentResponse || studentResponse.status() !== 200) {
@@ -21,6 +31,26 @@ const fs = require('fs');
   }
   if (!(await studentPage.getByRole('heading', { name: 'Controlled Access Validation Course' }).count())) {
     throw new Error('Approved student did not receive the validation course page.');
+  }
+
+  const lessonOneUrl = `http://127.0.0.1:8080/?post_type=lp_lesson&p=${encodeURIComponent(lessonOneId)}`;
+  const lessonTwoUrl = `http://127.0.0.1:8080/?post_type=lp_lesson&p=${encodeURIComponent(lessonTwoId)}`;
+  const firstResponse = await studentPage.goto(lessonOneUrl);
+  if (!firstResponse || firstResponse.status() !== 200) {
+    throw new Error(`First regulated lesson expected HTTP 200, received ${firstResponse ? firstResponse.status() : 'no response'}.`);
+  }
+  await studentPage.locator('#gb-seat-time').waitFor({ state: 'visible' });
+  const statusText = await studentPage.locator('#gb-seat-status').innerText();
+  if (!/0:00 of 2:00|Server-confirmed study time/.test(statusText)) {
+    throw new Error(`Secure timer did not initialize: ${statusText}`);
+  }
+
+  const secondResponse = await studentPage.goto(lessonTwoUrl);
+  if (!secondResponse || secondResponse.status() !== 200) {
+    throw new Error(`Locked lesson redirect expected final HTTP 200, received ${secondResponse ? secondResponse.status() : 'no response'}.`);
+  }
+  if (!studentPage.url().includes(`p=${lessonOneId}`) || !studentPage.url().includes('gb_sequence_locked=1')) {
+    throw new Error(`Sequential lock did not redirect lesson two to lesson one. Final URL: ${studentPage.url()}`);
   }
 
   const anonymous = await browser.newContext();

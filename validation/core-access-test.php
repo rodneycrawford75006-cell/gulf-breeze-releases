@@ -13,8 +13,24 @@ $course_id = wp_insert_post(
 		'post_title'  => 'Controlled Access Validation Course',
 	)
 );
+$lesson_one_id = wp_insert_post(
+	array(
+		'post_type'   => 'lp_lesson',
+		'post_status' => 'publish',
+		'post_title'  => 'Validation Timed Lesson One',
+		'post_content'=> '<p>Disposable regulated lesson content.</p>',
+	)
+);
+$lesson_two_id = wp_insert_post(
+	array(
+		'post_type'   => 'lp_lesson',
+		'post_status' => 'publish',
+		'post_title'  => 'Validation Locked Lesson Two',
+		'post_content'=> '<p>Disposable locked lesson content.</p>',
+	)
+);
 
-if ( is_wp_error( $tester_id ) || is_wp_error( $other_id ) || ! $course_id ) {
+if ( is_wp_error( $tester_id ) || is_wp_error( $other_id ) || ! $course_id || ! $lesson_one_id || ! $lesson_two_id ) {
 	throw new RuntimeException( 'Could not create disposable validation records.' );
 }
 
@@ -22,8 +38,22 @@ $workspace = getenv( 'GITHUB_WORKSPACE' );
 if ( ! $workspace || false === file_put_contents( $workspace . '/validation/course-id.txt', (string) $course_id ) ) {
 	throw new RuntimeException( 'Could not publish the disposable course ID to the browser test.' );
 }
+file_put_contents( $workspace . '/validation/lesson-one-id.txt', (string) $lesson_one_id );
+file_put_contents( $workspace . '/validation/lesson-two-id.txt', (string) $lesson_two_id );
 
 update_post_meta( $course_id, '_gb_course_key', 'adult_en' );
+update_post_meta( $lesson_one_id, '_gb_course_key', 'adult_en' );
+update_post_meta( $lesson_one_id, '_gb_required_seconds', 120 );
+update_post_meta( $lesson_two_id, '_gb_course_key', 'adult_en' );
+update_post_meta( $lesson_two_id, '_gb_required_seconds', 120 );
+
+global $wpdb;
+$wpdb->insert( $wpdb->prefix . 'learnpress_sections', array(
+	'section_name' => 'Validation Section', 'section_course_id' => $course_id, 'section_order' => 1, 'section_description' => '',
+) );
+$section_id = (int) $wpdb->insert_id;
+$wpdb->insert( $wpdb->prefix . 'learnpress_section_items', array( 'section_id' => $section_id, 'item_id' => $lesson_one_id, 'item_order' => 1, 'item_type' => 'lp_lesson' ) );
+$wpdb->insert( $wpdb->prefix . 'learnpress_section_items', array( 'section_id' => $section_id, 'item_id' => $lesson_two_id, 'item_order' => 2, 'item_type' => 'lp_lesson' ) );
 flush_rewrite_rules( false );
 
 $base_registry = array(
