@@ -39,10 +39,10 @@ jobs:
       - name: Verify archive and PHP syntax
         run: |
           set -euo pipefail
-          test "$(unzip -Z1 validation/gulf-breeze-core-2.3.11-dev-checkpoint-r3.zip | sed -n '1p' | cut -d/ -f1)" = "gulf-breeze-core"
+          test "$(unzip -Z1 validation/gulf-breeze-core-2.3.11-dev-checkpoint-r4.zip | sed -n '1p' | cut -d/ -f1)" = "gulf-breeze-core"
           rm -rf /tmp/gb-core
           mkdir -p /tmp/gb-core
-          unzip -q validation/gulf-breeze-core-2.3.11-dev-checkpoint-r3.zip -d /tmp/gb-core
+          unzip -q validation/gulf-breeze-core-2.3.11-dev-checkpoint-r4.zip -d /tmp/gb-core
           find /tmp/gb-core/gulf-breeze-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-core/gulf-breeze-core
 
@@ -63,7 +63,7 @@ jobs:
           WP='/tmp/wp-cli.phar --path=/tmp/wordpress'
           $WP plugin install "https://raw.githubusercontent.com/rodneycrawford75006-cell/gulf-breeze-releases/main/gulf-breeze-core-2.2.1.zip" --activate --quiet
           $WP option update gb_config '{"legal_name":"VALIDATION SENTINEL","timezone":"America/Chicago"}' --format=json
-          $WP plugin install "$GITHUB_WORKSPACE/validation/gulf-breeze-core-2.3.11-dev-checkpoint-r3.zip" --force --quiet
+          $WP plugin install "$GITHUB_WORKSPACE/validation/gulf-breeze-core-2.3.11-dev-checkpoint-r4.zip" --force --quiet
           $WP plugin activate gulf-breeze-core --quiet
           $WP eval 'if (!class_exists("Gulf_Breeze_Configuration")) { throw new Exception("Core class missing after upgrade."); } if (GB_CORE_VERSION !== "2.3.11-dev") { throw new Exception("Unexpected Core version: ".GB_CORE_VERSION); } $cfg=get_option("gb_config",array()); if (($cfg["legal_name"] ?? "") !== "VALIDATION SENTINEL") { throw new Exception("Configuration was not preserved."); } do_action("admin_init"); echo "Upgrade and option preservation passed.\n";'
 
