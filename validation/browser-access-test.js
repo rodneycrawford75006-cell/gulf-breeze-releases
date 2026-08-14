@@ -24,8 +24,13 @@ const fs = require('fs');
     throw new Error('Approved student did not receive the validation course page.');
   }
 
-  const lessonOneUrl = `${origin}/?post_type=lp_lesson&p=${encodeURIComponent(lessonOneId)}`;
-  const lessonTwoUrl = `${origin}/?post_type=lp_lesson&p=${encodeURIComponent(lessonTwoId)}`;
+  const lessonOneLink = studentPage.getByRole('link', { name: 'Validation Timed Lesson One' }).first();
+  const lessonTwoLink = studentPage.getByRole('link', { name: 'Validation Locked Lesson Two' }).first();
+  if (!(await lessonOneLink.count()) || !(await lessonTwoLink.count())) {
+    throw new Error('Disposable course curriculum did not expose both lesson links.');
+  }
+  const lessonOneUrl = new URL(await lessonOneLink.getAttribute('href'), origin).href;
+  const lessonTwoUrl = new URL(await lessonTwoLink.getAttribute('href'), origin).href;
   const firstResponse = await studentPage.goto(lessonOneUrl);
   if (!firstResponse || firstResponse.status() !== 200) {
     throw new Error(`First regulated lesson expected HTTP 200, received ${firstResponse ? firstResponse.status() : 'no response'}.`);
@@ -40,7 +45,9 @@ const fs = require('fs');
   if (!secondResponse || secondResponse.status() !== 200) {
     throw new Error(`Locked lesson redirect expected final HTTP 200, received ${secondResponse ? secondResponse.status() : 'no response'}.`);
   }
-  if (!studentPage.url().includes(`p=${lessonOneId}`) || !studentPage.url().includes('gb_sequence_locked=1')) {
+  const finalUrl = new URL(studentPage.url());
+  const expectedFirstUrl = new URL(lessonOneUrl);
+  if (finalUrl.pathname !== expectedFirstUrl.pathname || finalUrl.searchParams.get('gb_sequence_locked') !== '1') {
     throw new Error(`Sequential lock did not redirect lesson two to lesson one. Final URL: ${studentPage.url()}`);
   }
 
