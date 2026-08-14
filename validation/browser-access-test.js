@@ -71,6 +71,10 @@ const fs = require('fs');
   if (!anonymousResponse || anonymousResponse.status() !== 404) {
     throw new Error(`Anonymous visitor expected HTTP 404, received ${anonymousResponse ? anonymousResponse.status() : 'no response'}.`);
   }
+  const anonymousLessonResponse = await anonymousPage.goto(lessonOneUrl, { waitUntil: 'domcontentloaded' });
+  if (!anonymousLessonResponse || anonymousLessonResponse.status() !== 404) {
+    throw new Error(`Anonymous direct lesson visitor expected HTTP 404, received ${anonymousLessonResponse ? anonymousLessonResponse.status() : 'no response'}.`);
+  }
 
   await browser.close();
   console.log('Chromium student-access and anonymous-404 validation passed.');
