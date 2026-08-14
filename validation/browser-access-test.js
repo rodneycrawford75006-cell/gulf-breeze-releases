@@ -31,7 +31,7 @@ const fs = require('fs');
   }
   const lessonOneUrl = new URL(await lessonOneLink.getAttribute('href'), origin).href;
   const lessonTwoUrl = new URL(await lessonTwoLink.getAttribute('href'), origin).href;
-  const firstResponse = await studentPage.goto(lessonOneUrl);
+  const firstResponse = await studentPage.goto(lessonOneUrl, { waitUntil: 'domcontentloaded' });
   if (!firstResponse || firstResponse.status() !== 200) {
     throw new Error(`First regulated lesson expected HTTP 200, received ${firstResponse ? firstResponse.status() : 'no response'}.`);
   }
