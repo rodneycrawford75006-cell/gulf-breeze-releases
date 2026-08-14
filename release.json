@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.2.1",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.2.1.zip",
-  "sha256": "0c314e5b55089d63fca9234ec03206a6f553b6b4188707f585a394519d353904",
-  "released_at": "2026-08-13T18:43:00-05:00",
-  "notes": "Core 2.2.1 corrective recovery release. Replaces cached LearnPress section insertion during the video-bank migration with verified direct section-table placement, preserves placeholder-to-bank gate mappings, remains retry-safe after the failed 2.2.0 migration, and preserves the Adult English 46-lesson / 330-minute regulated ledger."
+  "version": "2.3.10-dev",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.10.zip",
+  "sha256": "c394bcdd30aa1d17a6dc5d5375327fb52d7828997839139d1c47f8e74b93c0af",
+  "released_at": "2026-08-14T13:32:31-05:00",
+  "notes": "Core 2.3.10 validated controlled-access release. Adds an administrator-managed tester user-ID list for regulated courses in internal_testing status; allows only listed logged-in testers while preserving administrator access and 404 protection for anonymous visitors, unlisted users, and non-testing registry states. Preserves existing Gulf Breeze configuration, instructional content, timers, gates, Under Construction protection, and approval status."
 }
