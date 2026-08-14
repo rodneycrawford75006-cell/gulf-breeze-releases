@@ -83,6 +83,28 @@ update_option( 'gb_course_registry', $base_registry, false );
 
 $core = Gulf_Breeze_Configuration::instance();
 
+$resolver = new ReflectionMethod( $core, 'current_learnpress_item_id' );
+$resolver->setAccessible( true );
+$original_request_uri = $_SERVER['REQUEST_URI'] ?? '';
+$wp_query = new WP_Query( array( 'post_type' => 'lp_course', 'p' => $course_id ) );
+$post = get_post( $course_id );
+setup_postdata( $post );
+$_SERVER['REQUEST_URI'] = '/courses/controlled-access-validation-course/lessons/validation-locked-lesson-two/';
+if ( $lesson_two_id !== $resolver->invoke( $core ) ) {
+	throw new RuntimeException( 'Nested LearnPress route resolver did not identify lesson two.' );
+}
+
+$wp_query = new WP_Query( array( 'post_type' => 'lp_lesson', 'p' => $lesson_one_id ) );
+$post = get_post( $lesson_one_id );
+setup_postdata( $post );
+$_SERVER['REQUEST_URI'] = '/?post_type=lp_lesson&p=' . $lesson_one_id;
+if ( $lesson_one_id !== $resolver->invoke( $core ) ) {
+	throw new RuntimeException( 'Ordinary lesson query resolver did not identify lesson one.' );
+}
+$_SERVER['REQUEST_URI'] = $original_request_uri;
+wp_reset_postdata();
+echo "PASS shared LearnPress course-item route resolver\n";
+
 $sanitized = $core->sanitize_course_registry(
 	array(
 		'adult_en' => array(
