@@ -10,6 +10,19 @@ const fs = require('fs');
   );
   await student.addCookies([authCookie]);
   const studentPage = await student.newPage();
+  const timerResponses = [];
+  studentPage.on('response', async (response) => {
+    if (!response.url().includes('/wp-admin/admin-ajax.php')) {
+      return;
+    }
+    let body = '';
+    try {
+      body = await response.text();
+    } catch (error) {
+      body = `[response body unavailable: ${error.message}]`;
+    }
+    timerResponses.push({ status: response.status(), url: response.url(), body });
+  });
 
   const courseId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/course-id.txt`, 'utf8').trim();
   const lessonOneId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/lesson-one-id.txt`, 'utf8').trim();
@@ -36,9 +49,10 @@ const fs = require('fs');
     throw new Error(`First regulated lesson expected HTTP 200, received ${firstResponse ? firstResponse.status() : 'no response'}.`);
   }
   await studentPage.locator('#gb-seat-time').waitFor({ state: 'visible' });
+  await studentPage.waitForTimeout(1000);
   const statusText = await studentPage.locator('#gb-seat-status').innerText();
   if (!/0:00 of 2:00|Server-confirmed study time/.test(statusText)) {
-    throw new Error(`Secure timer did not initialize: ${statusText}`);
+    throw new Error(`Secure timer did not initialize: ${statusText}. AJAX responses: ${JSON.stringify(timerResponses)}`);
   }
 
   const secondResponse = await studentPage.goto(lessonTwoUrl);
