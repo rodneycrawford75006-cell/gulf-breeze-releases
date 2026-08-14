@@ -19,6 +19,7 @@ if ( is_wp_error( $tester_id ) || is_wp_error( $other_id ) || ! $course_id ) {
 }
 
 update_post_meta( $course_id, '_gb_course_key', 'adult_en' );
+flush_rewrite_rules( false );
 
 $base_registry = array(
 	'adult_en' => array(
