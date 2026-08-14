@@ -107,6 +107,16 @@ $_SERVER['REQUEST_URI'] = $original_request_uri;
 wp_reset_postdata();
 echo "PASS shared LearnPress course-item route resolver\n";
 
+$course = function_exists( 'learn_press_get_course' ) ? learn_press_get_course( $course_id ) : null;
+if ( ! is_object( $course ) || ! method_exists( $course, 'get_item_link' ) ) {
+	throw new RuntimeException( 'LearnPress canonical course-item link API is unavailable.' );
+}
+$canonical_lesson_url = $course->get_item_link( $lesson_one_id );
+if ( ! is_string( $canonical_lesson_url ) || false === strpos( $canonical_lesson_url, '/courses/' ) || false === strpos( $canonical_lesson_url, '/lessons/' ) ) {
+	throw new RuntimeException( 'LearnPress canonical lesson URL is not course-nested: ' . (string) $canonical_lesson_url );
+}
+echo "PASS LearnPress canonical course-item link generation\n";
+
 $sanitized = $core->sanitize_course_registry(
 	array(
 		'adult_en' => array(
