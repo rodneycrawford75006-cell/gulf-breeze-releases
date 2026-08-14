@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.3.11-dev",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.11.zip",
-  "sha256": "f473306629d21883d5dc08b541d203a7839817a1e615c7e6f30c5adb8230d72a",
-  "released_at": "2026-08-14T15:31:47-05:00",
-  "notes": "Core 2.3.11 validated regulated-course enforcement release. Preserves the controlled internal tester allowlist and private-course 404 protections; restores secure lesson timer initialization on the public WordPress route; enforces LearnPress sequential access on nested course-item routes; and redirects locked items through LearnPress canonical course-item links. Validated in disposable WordPress and LearnPress with PHP 8.4 syntax, migration, access-control, timer, sequential-navigation, anonymous-protection, and Chromium browser tests. Preserves Gulf Breeze configuration, instructional content, Under Construction protection, and approval status."
+  "version": "2.3.12-dev",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.12.zip",
+  "sha256": "7c29083ae34f5bcbd6642d5a176ef6110b79fd7d32c09e436fec8ea59c90a103",
+  "released_at": "2026-08-14T16:12:11-05:00",
+  "notes": "Core 2.3.12 validated student-facing privacy and content-preservation release. Disables comments and pings for LearnPress courses, lessons, and quizzes; replaces internal curriculum section descriptions with student-facing descriptions; changes only the exact ambiguous self-check prompt to private no-submission-required wording; and hides the Under Construction administrator notice from non-administrators. Expanded validation confirms exact lesson-content preservation, course publication preservation, controlled tester access, timer and sequential navigation behavior, anonymous protection, and Chromium student views. Preserves Gulf Breeze configuration, all other instructional content, Under Construction protection, and approval status."
 }
