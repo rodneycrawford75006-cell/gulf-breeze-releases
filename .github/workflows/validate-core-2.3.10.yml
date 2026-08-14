@@ -75,6 +75,7 @@ jobs:
       - name: Test student access in Chromium
         run: |
           set -euo pipefail
+          /tmp/wp-cli.phar eval '$user=get_user_by("login","gb_validation_tester"); if (!$user) { throw new Exception("Validation tester missing."); } $expiration=time()+3600; echo wp_json_encode(array("name"=>LOGGED_IN_COOKIE,"value"=>wp_generate_auth_cookie($user->ID,$expiration,"logged_in"),"domain"=>"127.0.0.1","path"=>"/","expires"=>$expiration,"httpOnly"=>true,"secure"=>false,"sameSite"=>"Lax"));' --path=/tmp/wordpress > "$GITHUB_WORKSPACE/validation/auth-cookie.json"
           /tmp/wp-cli.phar server --path=/tmp/wordpress --host=127.0.0.1 --port=8080 >/tmp/wordpress-server.log 2>&1 &
           WP_SERVER_PID=$!
           trap 'kill "$WP_SERVER_PID" || true' EXIT
