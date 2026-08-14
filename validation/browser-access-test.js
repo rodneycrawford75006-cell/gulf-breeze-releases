@@ -2,28 +2,19 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 
 (async () => {
+  const origin = 'http://127.0.0.1:8080';
   const browser = await chromium.launch({ headless: true });
   const student = await browser.newContext();
+  const authCookie = JSON.parse(
+    fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/auth-cookie.json`, 'utf8')
+  );
+  await student.addCookies([authCookie]);
   const studentPage = await student.newPage();
-
-  await studentPage.goto('http://127.0.0.1:8080/wp-login.php');
-  await studentPage.locator('#user_login').fill('gb_validation_tester');
-  await studentPage.locator('#user_pass').fill('validation-only-password');
-  await Promise.all([
-    studentPage.waitForNavigation(),
-    studentPage.locator('#wp-submit').click(),
-  ]);
-
-  await studentPage.goto('http://127.0.0.1:8080/');
-  const loggedIn = await studentPage.locator('body').evaluate((body) => body.classList.contains('logged-in'));
-  if (!loggedIn) {
-    throw new Error('Synthetic student login did not persist in Chromium.');
-  }
 
   const courseId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/course-id.txt`, 'utf8').trim();
   const lessonOneId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/lesson-one-id.txt`, 'utf8').trim();
   const lessonTwoId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/lesson-two-id.txt`, 'utf8').trim();
-  const courseUrl = `http://127.0.0.1:8080/?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
+  const courseUrl = `${origin}/?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
 
   const studentResponse = await studentPage.goto(courseUrl);
   if (!studentResponse || studentResponse.status() !== 200) {
@@ -33,8 +24,8 @@ const fs = require('fs');
     throw new Error('Approved student did not receive the validation course page.');
   }
 
-  const lessonOneUrl = `http://127.0.0.1:8080/?post_type=lp_lesson&p=${encodeURIComponent(lessonOneId)}`;
-  const lessonTwoUrl = `http://127.0.0.1:8080/?post_type=lp_lesson&p=${encodeURIComponent(lessonTwoId)}`;
+  const lessonOneUrl = `${origin}/?post_type=lp_lesson&p=${encodeURIComponent(lessonOneId)}`;
+  const lessonTwoUrl = `${origin}/?post_type=lp_lesson&p=${encodeURIComponent(lessonTwoId)}`;
   const firstResponse = await studentPage.goto(lessonOneUrl);
   if (!firstResponse || firstResponse.status() !== 200) {
     throw new Error(`First regulated lesson expected HTTP 200, received ${firstResponse ? firstResponse.status() : 'no response'}.`);
