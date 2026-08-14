@@ -2,26 +2,35 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 
 (async () => {
+  const baseUrl = 'http://127.0.0.1:8080';
   const browser = await chromium.launch({ headless: true });
   const student = await browser.newContext();
   const studentPage = await student.newPage();
 
-  await studentPage.goto('http://127.0.0.1:8080/wp-login.php');
+  await studentPage.goto(`${baseUrl}/wp-login.php`);
   await studentPage.locator('#user_login').fill('gb_validation_tester');
   await studentPage.locator('#user_pass').fill('validation-only-password');
+  await studentPage.locator('input[name="redirect_to"]').evaluate((input, url) => {
+    input.value = url;
+  }, `${baseUrl}/`);
+
   await Promise.all([
-    studentPage.waitForNavigation(),
+    studentPage.waitForURL(`${baseUrl}/`, { waitUntil: 'domcontentloaded' }),
     studentPage.locator('#wp-submit').click(),
   ]);
 
-  await studentPage.goto('http://127.0.0.1:8080/');
-  const loggedIn = await studentPage.locator('body').evaluate((body) => body.classList.contains('logged-in'));
-  if (!loggedIn) {
-    throw new Error('Synthetic student login did not persist in Chromium.');
+  const authCookies = (await student.cookies()).filter((cookie) =>
+    cookie.name.startsWith('wordpress_logged_in_')
+  );
+  if (authCookies.length === 0) {
+    const loginError = await studentPage.locator('#login_error').textContent().catch(() => null);
+    throw new Error(
+      `Synthetic student login did not create a WordPress authentication cookie.${loginError ? ` Login error: ${loginError.trim()}` : ''}`
+    );
   }
 
   const courseId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/course-id.txt`, 'utf8').trim();
-  const courseUrl = `http://127.0.0.1:8080/?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
+  const courseUrl = `${baseUrl}/?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
 
   const studentResponse = await studentPage.goto(courseUrl);
   if (!studentResponse || studentResponse.status() !== 200) {
