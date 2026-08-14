@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.3.10-dev",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.10.zip",
-  "sha256": "c394bcdd30aa1d17a6dc5d5375327fb52d7828997839139d1c47f8e74b93c0af",
-  "released_at": "2026-08-14T13:32:31-05:00",
-  "notes": "Core 2.3.10 validated controlled-access release. Adds an administrator-managed tester user-ID list for regulated courses in internal_testing status; allows only listed logged-in testers while preserving administrator access and 404 protection for anonymous visitors, unlisted users, and non-testing registry states. Preserves existing Gulf Breeze configuration, instructional content, timers, gates, Under Construction protection, and approval status."
+  "version": "2.3.11-dev",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.11.zip",
+  "sha256": "f473306629d21883d5dc08b541d203a7839817a1e615c7e6f30c5adb8230d72a",
+  "released_at": "2026-08-14T15:31:47-05:00",
+  "notes": "Core 2.3.11 validated regulated-course enforcement release. Preserves the controlled internal tester allowlist and private-course 404 protections; restores secure lesson timer initialization on the public WordPress route; enforces LearnPress sequential access on nested course-item routes; and redirects locked items through LearnPress canonical course-item links. Validated in disposable WordPress and LearnPress with PHP 8.4 syntax, migration, access-control, timer, sequential-navigation, anonymous-protection, and Chromium browser tests. Preserves Gulf Breeze configuration, instructional content, Under Construction protection, and approval status."
 }
