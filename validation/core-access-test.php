@@ -4,7 +4,7 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 	exit( 1 );
 }
 
-$tester_id = wp_create_user( 'gb_validation_tester', wp_generate_password(), 'tester@example.invalid' );
+$tester_id = wp_create_user( 'gb_validation_tester', 'validation-only-password', 'tester@example.invalid' );
 $other_id  = wp_create_user( 'gb_validation_other', wp_generate_password(), 'other@example.invalid' );
 $course_id = wp_insert_post(
 	array(

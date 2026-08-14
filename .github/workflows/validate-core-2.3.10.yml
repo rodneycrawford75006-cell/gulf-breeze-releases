@@ -72,3 +72,16 @@ jobs:
           set -euo pipefail
           /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/validation/core-access-test.php" --path=/tmp/wordpress
 
+      - name: Test student access in Chromium
+        run: |
+          set -euo pipefail
+          /tmp/wp-cli.phar server --path=/tmp/wordpress --host=127.0.0.1 --port=8080 >/tmp/wordpress-server.log 2>&1 &
+          WP_SERVER_PID=$!
+          trap 'kill "$WP_SERVER_PID" || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null; then break; fi
+            sleep 1
+          done
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+          node "$GITHUB_WORKSPACE/validation/browser-access-test.js"
