@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const fs = require('fs');
 
 (async () => {
   const browser = await chromium.launch({ headless: true });
@@ -13,7 +14,16 @@ const { chromium } = require('playwright');
     studentPage.locator('#wp-submit').click(),
   ]);
 
-  const studentResponse = await studentPage.goto('http://127.0.0.1:8080/courses/controlled-access-validation-course/');
+  await studentPage.goto('http://127.0.0.1:8080/');
+  const loggedIn = await studentPage.locator('body').evaluate((body) => body.classList.contains('logged-in'));
+  if (!loggedIn) {
+    throw new Error('Synthetic student login did not persist in Chromium.');
+  }
+
+  const courseId = fs.readFileSync(`${process.env.GITHUB_WORKSPACE}/validation/course-id.txt`, 'utf8').trim();
+  const courseUrl = `http://127.0.0.1:8080/?post_type=lp_course&p=${encodeURIComponent(courseId)}`;
+
+  const studentResponse = await studentPage.goto(courseUrl);
   if (!studentResponse || studentResponse.status() !== 200) {
     throw new Error(`Approved student expected HTTP 200, received ${studentResponse ? studentResponse.status() : 'no response'}.`);
   }
@@ -23,7 +33,7 @@ const { chromium } = require('playwright');
 
   const anonymous = await browser.newContext();
   const anonymousPage = await anonymous.newPage();
-  const anonymousResponse = await anonymousPage.goto('http://127.0.0.1:8080/courses/controlled-access-validation-course/');
+  const anonymousResponse = await anonymousPage.goto(courseUrl);
   if (!anonymousResponse || anonymousResponse.status() !== 404) {
     throw new Error(`Anonymous visitor expected HTTP 404, received ${anonymousResponse ? anonymousResponse.status() : 'no response'}.`);
   }

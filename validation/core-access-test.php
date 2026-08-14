@@ -18,6 +18,11 @@ if ( is_wp_error( $tester_id ) || is_wp_error( $other_id ) || ! $course_id ) {
 	throw new RuntimeException( 'Could not create disposable validation records.' );
 }
 
+$workspace = getenv( 'GITHUB_WORKSPACE' );
+if ( ! $workspace || false === file_put_contents( $workspace . '/validation/course-id.txt', (string) $course_id ) ) {
+	throw new RuntimeException( 'Could not publish the disposable course ID to the browser test.' );
+}
+
 update_post_meta( $course_id, '_gb_course_key', 'adult_en' );
 flush_rewrite_rules( false );
 
