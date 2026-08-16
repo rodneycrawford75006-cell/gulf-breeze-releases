@@ -271,12 +271,16 @@ $boundary_filler = implode( ' ', array_fill( 0, 375, 'boundaryword' ) );
 $general_filler  = implode( ' ', array_fill( 0, 1000, 'preservationword' ) );
 $resume_content_before = array();
 foreach ( $lesson_ids as $lesson_index => $resume_lesson_id ) {
-	$key    = sprintf( 'adult_en_%03d', $lesson_index + 1 );
+	$lesson_number = $lesson_index + 1;
+	$key           = sprintf( 'adult_en_%03d', $lesson_number );
 	$before = (string) get_post_field( 'post_content', $resume_lesson_id );
 	$filler = 'adult_en_032' === $key ? $boundary_filler : $general_filler;
+	$visual_fixture = $lesson_number >= 17 && $lesson_number <= 21
+		? '<div class="gb-sign-gallery">Preserved official-sign observation fixture.</div>'
+		: '';
 	$result = wp_update_post( array(
 		'ID'           => $resume_lesson_id,
-		'post_content' => $before . '<p class="gb-resume-fixture">' . $filler . '</p>',
+		'post_content' => $before . $visual_fixture . '<p class="gb-resume-fixture">' . $filler . '</p>',
 	), true );
 	if ( is_wp_error( $result ) ) {
 		throw new RuntimeException( 'Could not prepare duration-resume fixture for ' . $key . '.' );
