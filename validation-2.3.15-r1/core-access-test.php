@@ -345,8 +345,17 @@ if ( 330 !== $resume_minute_total || $resume_ledger_before !== wp_json_encode( $
 if ( $resume_sections_before !== wp_json_encode( $wpdb->get_results( $wpdb->prepare( "SELECT section_id, section_name, section_order, section_description FROM {$sections_table} WHERE section_course_id = %d ORDER BY section_order ASC, section_id ASC", $course_id ), ARRAY_A ) ) ) {
 	throw new RuntimeException( 'Resumed duration migrations changed a regulated section.' );
 }
-if ( 'publish' !== get_post_status( $course_id ) || $resume_privacy_version !== (string) get_option( 'gb_student_privacy_migration_version', '' ) || $resume_privacy_status !== get_option( 'gb_student_privacy_migration_status', array() ) ) {
-	throw new RuntimeException( 'Resumed duration migrations changed publication or privacy-migration state.' );
+$resume_course_status          = get_post_status( $course_id );
+$resume_privacy_version_after = (string) get_option( 'gb_student_privacy_migration_version', '' );
+$resume_privacy_status_after  = get_option( 'gb_student_privacy_migration_status', array() );
+if ( 'publish' !== $resume_course_status || $resume_privacy_version !== $resume_privacy_version_after || $resume_privacy_status !== $resume_privacy_status_after ) {
+	throw new RuntimeException(
+		'Resume preservation diagnostic: course_status=' . (string) $resume_course_status .
+		'; privacy_version_before=' . $resume_privacy_version .
+		'; privacy_version_after=' . $resume_privacy_version_after .
+		'; privacy_status_before=' . wp_json_encode( $resume_privacy_status ) .
+		'; privacy_status_after=' . wp_json_encode( $resume_privacy_status_after )
+	);
 }
 foreach ( array_merge( array( $course_id ), $lesson_ids, $quiz_ids ) as $preserved_post_id ) {
 	$preserved_post = get_post( $preserved_post_id );
