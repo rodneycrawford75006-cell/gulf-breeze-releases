@@ -4,6 +4,13 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
 	exit( 1 );
 }
 
+$administrator = get_user_by( 'login', 'admin' );
+if ( ! $administrator ) {
+	throw new RuntimeException( 'Disposable WordPress administrator is unavailable.' );
+}
+$administrator_id = (int) $administrator->ID;
+wp_set_current_user( $administrator_id );
+
 $tester_id = wp_create_user( 'gb_validation_tester', 'validation-only-password', 'tester@example.invalid' );
 $other_id  = wp_create_user( 'gb_validation_other', wp_generate_password(), 'other@example.invalid' );
 $course_id = wp_insert_post( array( 'post_type' => 'lp_course', 'post_status' => 'publish', 'post_title' => 'Controlled Access Validation Course' ) );
@@ -119,7 +126,7 @@ $base_registry = array(
 update_option( 'gb_course_registry', $base_registry, false );
 
 $core = Gulf_Breeze_Configuration::instance();
-wp_set_current_user( 1 );
+wp_set_current_user( $administrator_id );
 
 $before_privacy_content = (string) get_post_field( 'post_content', $lesson_one_id );
 $legacy_prompt = '<strong>Before continuing:</strong> Explain the lesson rule in your own words and identify the action that reduces risk. If you cannot do both without looking, review the lesson and the official source again.';
@@ -310,7 +317,7 @@ function gb_validation_access_case( $label, $user_id, $status, $expect_404, $cou
 	echo 'PASS ' . $label . PHP_EOL;
 }
 
-gb_validation_access_case( 'administrator', 1, 'internal_testing', false, $course_id, $base_registry, $core );
+gb_validation_access_case( 'administrator', $administrator_id, 'internal_testing', false, $course_id, $base_registry, $core );
 gb_validation_access_case( 'approved tester on internal course', $tester_id, 'internal_testing', false, $course_id, $base_registry, $core );
 gb_validation_access_case( 'approved tester on building course', $tester_id, 'building', true, $course_id, $base_registry, $core );
 gb_validation_access_case( 'unlisted authenticated user', $other_id, 'internal_testing', true, $course_id, $base_registry, $core );
