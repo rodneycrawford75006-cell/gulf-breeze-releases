@@ -172,6 +172,11 @@ if ( wp_json_encode( $ledger_before ) !== wp_json_encode( $wpdb->get_results( $l
 }
 
 $core->run_student_facing_privacy_migration();
+$diagnostic_status  = get_option( 'gb_student_privacy_migration_status', array() );
+$diagnostic_version = (string) get_option( 'gb_student_privacy_migration_version', '' );
+if ( '2.3.14' !== $diagnostic_version || 'success' !== ( $diagnostic_status['status'] ?? '' ) ) {
+	throw new RuntimeException( 'Migration diagnostic: version=' . $diagnostic_version . '; status=' . wp_json_encode( $diagnostic_status ) );
+}
 $after_privacy_content = (string) get_post_field( 'post_content', $lesson_one_id );
 if ( $after_privacy_content !== $expected_privacy_content || false === strpos( $after_privacy_content, 'Preservation sentinel after the self-check.' ) ) {
 	throw new RuntimeException( 'Student-facing migration changed content beyond the exact self-check replacement.' );
