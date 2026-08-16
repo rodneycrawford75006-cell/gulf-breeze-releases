@@ -39,6 +39,8 @@ assert(php.includes('$curriculum_signature !== wp_json_encode( $curriculum_rows_
 assert(php.indexOf('$curriculum_signature !== wp_json_encode( $curriculum_rows_after )') < php.indexOf("update_option( 'gb_student_privacy_migration_version', $target_version"), 'Migration version advances before preservation verification.');
 assert((php.match(/'4\.1\.[1-9]'\s*=>\s*'/g) || []).length >= 9, 'All nine topic descriptions are not present.');
 assert(php.includes('Private self-check — no submission required:'), 'Private self-check replacement is missing.');
+assert(!php.includes("wp_update_post( array( 'ID' => $course_id, 'post_status' => 'draft' ) );"), 'Cache refresh still forces the parent course to draft.');
+assert(php.includes('Cache invalidation must not change the administrator-selected course status.'), 'Course-status preservation guard is undocumented in the cache refresh helper.');
 
 const requiredIncludes = [
   'adult-topic-one-hardening.php', 'adult-topic-two-hardening.php',
