@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.3.13-dev",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.13.zip",
-  "sha256": "8855cfa916e9241859528e490a439ab6d1d4e5c084559ef0742418d5b8149ff2",
-  "released_at": "2026-08-14T16:28:42-05:00",
-  "notes": "Core 2.3.13 validated section-privacy migration correction. Uses canonical prefixed LearnPress table names, verifies each stored student-facing section description before marking migration complete, and provides an exact non-administrator output redaction fallback. Expanded tests reproduce the live missing-table-alias condition while preserving lesson content, course publication, controlled tester access, comments closure, timer enforcement, sequential navigation, anonymous protection, and Under Construction status."
+  "version": "2.3.14-dev",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.14.zip",
+  "sha256": "6e038f222580d9059a61c5a89d8db80e840af96377188f0f4d0f421ae4014950",
+  "released_at": "2026-08-16T00:31:58-05:00",
+  "notes": "Core 2.3.14 revision 1 provides the verified LearnPress course-JSON synchronization correction. The migration updates student-facing section descriptions through native LearnPress models, verifies both relational rows and fresh CourseModel JSON, fails closed before advancing the stored version, and preserves the exact ordered curriculum ledger. Expanded tests preserve all 9 sections, 46 lessons, 10 quizzes, 56 ordered items, 330 instructional minutes, course publication, controlled access, comments closure, timer enforcement, sequential navigation, anonymous protection, and Under Construction status."
 }
