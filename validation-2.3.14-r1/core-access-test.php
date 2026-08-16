@@ -8,6 +8,10 @@ $administrator = get_user_by( 'login', 'admin' );
 if ( ! $administrator ) {
 	throw new RuntimeException( 'Disposable WordPress administrator is unavailable.' );
 }
+if ( ! function_exists( 'learn_press_add_user_roles' ) ) {
+	throw new RuntimeException( 'LearnPress role-capability initializer is unavailable.' );
+}
+learn_press_add_user_roles();
 $administrator_id = (int) $administrator->ID;
 wp_set_current_user( $administrator_id );
 
