@@ -13,13 +13,18 @@ wp_set_current_user( (int) $administrator->ID );
 $administrator->add_cap( 'edit_lp_lesson' );
 $administrator->add_cap( 'edit_lp_lessons' );
 $administrator->add_cap( 'edit_others_lp_lessons' );
+$administrator->add_cap( 'edit_published_lp_lessons' );
 $administrator->add_cap( 'publish_lp_lessons' );
 $administrator->add_cap( 'read_private_lp_lessons' );
 $administrator->add_cap( 'edit_lp_course' );
 $administrator->add_cap( 'edit_lp_courses' );
 $administrator->add_cap( 'edit_others_lp_courses' );
+$administrator->add_cap( 'edit_published_lp_courses' );
 $administrator->add_cap( 'publish_lp_courses' );
 $administrator->add_cap( 'read_private_lp_courses' );
+wp_set_current_user( 0 );
+wp_set_current_user( (int) $administrator->ID );
+$administrator = wp_get_current_user();
 
 if ( ! user_can( $administrator, 'edit_lp_lessons' ) ) {
 	throw new RuntimeException( 'Disposable WordPress administrator lacks LearnPress lesson-edit capability.' );
