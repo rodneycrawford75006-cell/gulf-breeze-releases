@@ -1,0 +1,112 @@
+name: Validate Gulf Breeze Video Quiz Gate 0.3.1
+
+on:
+  push:
+    branches:
+      - agent/video-gate-0.3.1-validation
+    paths:
+      - gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip
+      - video-gate-fixture.php
+      - video-gate-browser-test.mjs
+      - video-gate-upgrade-fixture.php
+      - .github/workflows/validate-video-gate-0.3.1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli
+          coverage: none
+
+      - name: Verify unchanged checkpoint and PHP syntax
+        run: |
+          set -euo pipefail
+          test "$(sha256sum gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip | cut -d' ' -f1)" = "d13ea3c33367baad75fcde471615ce285d914825e2e75451c5aa8b2fe03be949"
+          test "$(unzip -Z1 gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip | sed -n '1p' | cut -d/ -f1)" = "gulfbreeze-video-quiz-gate"
+          rm -rf /tmp/gbvqg-031
+          mkdir -p /tmp/gbvqg-031
+          unzip -q gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip -d /tmp/gbvqg-031
+          find /tmp/gbvqg-031 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l video-gate-fixture.php
+          php -l video-gate-upgrade-fixture.php
+          ! grep -RniE 'Drive Smart|drivesmart' /tmp/gbvqg-031
+          ! grep -RniE 'ACTIVE_STRICT_COURSES|RETIRED_LEGACY_COURSES|\b(7301|6772|7391|1641|1410)\b' /tmp/gbvqg-031
+          grep -Fq "Version: 0.3.1-dev" /tmp/gbvqg-031/gulfbreeze-video-quiz-gate/gulfbreeze-video-quiz-gate.php
+          grep -Fq "const VERSION       = '0.3.1-dev';" /tmp/gbvqg-031/gulfbreeze-video-quiz-gate/gulfbreeze-video-quiz-gate.php
+
+      - name: Install disposable WordPress, LearnPress, and upgrade fixture
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x /tmp/wp-cli.phar
+          mkdir -p /tmp/wordpress
+          /tmp/wp-cli.phar core download --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar config create --path=/tmp/wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --skip-check --quiet
+          /tmp/wp-cli.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8080 --title='Gulf Breeze Video Gate Validation' --admin_user=admin --admin_password='validation-only-password' --admin_email=validation@example.invalid --skip-email --quiet
+          /tmp/wp-cli.phar plugin install learnpress --version=4.4.4 --activate --path=/tmp/wordpress --quiet
+          mkdir -p /tmp/gbvqg-old/gulfbreeze-video-quiz-gate
+          cp "$GITHUB_WORKSPACE/video-gate-upgrade-fixture.php" /tmp/gbvqg-old/gulfbreeze-video-quiz-gate/gulfbreeze-video-quiz-gate.php
+          (cd /tmp/gbvqg-old && zip -qr /tmp/gulfbreeze-video-quiz-gate-0.2.33-fixture.zip gulfbreeze-video-quiz-gate)
+          /tmp/wp-cli.phar plugin install /tmp/gulfbreeze-video-quiz-gate-0.2.33-fixture.zip --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update gbvqg_events '[{"event":"pre-upgrade-sentinel"}]' --format=json --path=/tmp/wordpress
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip" --force --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar eval 'if (!class_exists("GulfBreeze_Video_Quiz_Gate") || GulfBreeze_Video_Quiz_Gate::VERSION !== "0.3.1-dev") { throw new Exception("Unexpected Video Gate build."); } $events=get_option("gbvqg_events",array()); if (($events[0]["event"]??"")!=="pre-upgrade-sentinel") { throw new Exception("Upgrade did not preserve prior audit events."); }' --path=/tmp/wordpress
+
+      - name: Build disposable CSEA and water-safety fixture
+        env:
+          GBVQG_FIXTURE_JSON: ${{ github.workspace }}/video-gate-fixture.json
+        run: |
+          set -euo pipefail
+          /tmp/wp-cli.phar rewrite structure '/%postname%/' --hard --path=/tmp/wordpress
+          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/video-gate-fixture.php" --path=/tmp/wordpress
+
+      - name: Install Chromium
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run real-browser student-path and bypass tests
+        env:
+          GBVQG_FIXTURE_JSON: ${{ github.workspace }}/video-gate-fixture.json
+        run: |
+          set -euo pipefail
+          /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress > /tmp/gbvqg-wp-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" || true; cat /tmp/gbvqg-wp-server.log' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null
+          node video-gate-browser-test.mjs
+
+      - name: Confirm audit evidence
+        run: |
+          set -euo pipefail
+          /tmp/wp-cli.phar eval '$events=get_option("gbvqg_events",array()); $names=array_column($events,"event"); foreach(array("dynamic_video_gate_registered","playback_session_started","verified_playback_completed","playback_evidence_invalidated","validation_answer_wrong","validation_answer_correct") as $required){ if(!in_array($required,$names,true)){ throw new Exception("Missing audit event: ".$required); } } echo "PASS required playback and validation audit events persisted\n";' --path=/tmp/wordpress
