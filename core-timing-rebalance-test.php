@@ -10,8 +10,17 @@ if ( ! $administrator ) {
 	throw new RuntimeException( 'Disposable WordPress administrator is unavailable.' );
 }
 wp_set_current_user( (int) $administrator->ID );
+$administrator->add_cap( 'edit_lp_lesson' );
+$administrator->add_cap( 'edit_lp_lessons' );
+$administrator->add_cap( 'edit_others_lp_lessons' );
+$administrator->add_cap( 'publish_lp_lessons' );
+$administrator->add_cap( 'read_private_lp_lessons' );
 
-$course_id = wp_insert_post( array( 'post_type' => 'lp_course', 'post_status' => 'publish', 'post_title' => 'Gulf Breeze Timing Validation Course' ) );
+if ( ! user_can( $administrator, 'edit_lp_lessons' ) ) {
+	throw new RuntimeException( 'Disposable WordPress administrator lacks LearnPress lesson-edit capability.' );
+}
+
+$course_id = wp_insert_post( array( 'post_type' => 'lp_course', 'post_status' => 'publish', 'post_title' => 'Gulf Breeze Timing Validation Course', 'post_author' => (int) $administrator->ID ) );
 if ( ! $course_id || is_wp_error( $course_id ) ) {
 	throw new RuntimeException( 'Could not create the disposable course.' );
 }
@@ -34,7 +43,7 @@ for ( $number = 1; $number <= 46; $number++ ) {
 		$old_expansion = '<p>' . implode( ' ', array_fill( 0, $minutes * 40, 'overfilled' ) ) . '</p>';
 		$content = $base . '<!-- ' . $old_marker . ' -->' . $old_expansion . '<!-- /gb-duration-hardening-' . $remove_versions[ $number ] . ' -->';
 	}
-	$lesson_id = wp_insert_post( array( 'post_type'=>'lp_lesson', 'post_status'=>'publish', 'post_title'=>'Validation Lesson '.$number, 'post_content'=>$content ) );
+	$lesson_id = wp_insert_post( array( 'post_type'=>'lp_lesson', 'post_status'=>'publish', 'post_title'=>'Validation Lesson '.$number, 'post_content'=>$content, 'post_author'=>(int)$administrator->ID ) );
 	if ( ! $lesson_id || is_wp_error( $lesson_id ) ) throw new RuntimeException( 'Could not create lesson ' . $number . '.' );
 	$lesson_ids[ $number ] = (int) $lesson_id;
 	update_post_meta( $lesson_id, '_gb_blueprint_key', $key );
@@ -57,7 +66,7 @@ for ( $number = 1; $number <= 46; $number++ ) {
 
 $quiz_ids = array();
 for ( $number = 1; $number <= 10; $number++ ) {
-	$quiz_id = wp_insert_post( array( 'post_type'=>'lp_quiz', 'post_status'=>'publish', 'post_title'=>'Validation Quiz '.$number ) );
+	$quiz_id = wp_insert_post( array( 'post_type'=>'lp_quiz', 'post_status'=>'publish', 'post_title'=>'Validation Quiz '.$number, 'post_author'=>(int)$administrator->ID ) );
 	if ( ! $quiz_id || is_wp_error( $quiz_id ) ) throw new RuntimeException( 'Could not create quiz ' . $number . '.' );
 	$quiz_ids[] = (int) $quiz_id;
 }
