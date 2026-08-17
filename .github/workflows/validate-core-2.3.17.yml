@@ -46,7 +46,7 @@ jobs:
           GB_PLUGIN_DIR=/tmp/gb-core-2.3.17/gulf-breeze-core node migration-model-test.mjs
           find /tmp/gb-core-2.3.17/gulf-breeze-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-core-2.3.17/gulf-breeze-core
-          test "$(sha256sum gulf-breeze-core-2.3.17-dev-checkpoint.zip | cut -d' ' -f1)" = "bf5bc297c1fcdc5695269a62ba38f656921193ac8d0fcbf73b32866918308f61"
+          test "$(sha256sum gulf-breeze-core-2.3.17-dev-checkpoint.zip | cut -d' ' -f1)" = "b7bcd9e0dd2dbdb2becf43b8051f6517e53b9ad755bb5138e4f78fcffa120fba"
 
       - name: Install disposable WordPress and LearnPress
         run: |
