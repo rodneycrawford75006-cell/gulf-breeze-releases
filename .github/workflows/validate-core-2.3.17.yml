@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - agent/core-2.3.17-validation
+    paths:
+      - gulf-breeze-core-2.3.17-dev-checkpoint.zip
+      - static-build-test.mjs
+      - migration-model-test.mjs
+      - core-timing-rebalance-test.php
   workflow_dispatch:
 
 permissions:
@@ -46,7 +51,7 @@ jobs:
           GB_PLUGIN_DIR=/tmp/gb-core-2.3.17/gulf-breeze-core node migration-model-test.mjs
           find /tmp/gb-core-2.3.17/gulf-breeze-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-core-2.3.17/gulf-breeze-core
-          test "$(sha256sum gulf-breeze-core-2.3.17-dev-checkpoint.zip | cut -d' ' -f1)" = "b7bcd9e0dd2dbdb2becf43b8051f6517e53b9ad755bb5138e4f78fcffa120fba"
+          test "$(sha256sum gulf-breeze-core-2.3.17-dev-checkpoint.zip | cut -d' ' -f1)" = "2a703e34030779fc2611322820d9b6a8ae2c17d4cd754c32f48ac9ef1fb318a8"
 
       - name: Install disposable WordPress and LearnPress
         run: |
