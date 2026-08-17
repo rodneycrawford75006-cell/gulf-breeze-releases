@@ -22,7 +22,7 @@ Core 2.3.17-dev adds the bounded curriculum migration checkpoint `2.3.10` for th
 | 9 | 5 | 607 | 600–750 |
 | 10 | 5 | 603 | 600–750 |
 | 11 | 8 | 970 | 960–1,200 |
-| 12 | 7 | 843 | 840–1,050 |
+| 12 | 7 | 851 | 840–1,050 |
 | 13 | 7 | 851 | 840–1,050 |
 | 14 | 8 | 966 | 960–1,200 |
 | 15 | 7 | 844 | 840–1,050 |
@@ -46,7 +46,7 @@ Core 2.3.17-dev adds the bounded curriculum migration checkpoint `2.3.10` for th
 - Transactional model for rollback, preservation, and idempotent retry: PASS.
 - ZIP integrity test: PASS.
 - Package root: `gulf-breeze-core/`.
-- Package SHA-256: `f0bbc39fc1fd0f22ef389e1e7e335a3a8c23ba75ca54817748f0ca55dab89738`.
+- Package SHA-256: `bf5bc297c1fcdc5695269a62ba38f656921193ac8d0fcbf73b32866918308f61`.
 
 ## Remaining release gate
 
