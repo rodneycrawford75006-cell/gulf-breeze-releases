@@ -1,4 +1,4 @@
-name: Validate Gulf Breeze Core 2.3.16 revision 1
+name: Validate Gulf Breeze Core 2.3.16 revision 2
 
 on:
   push:
@@ -39,13 +39,13 @@ jobs:
       - name: Verify archive and PHP syntax
         run: |
           set -euo pipefail
-          test "$(unzip -Z1 validation-2.3.16-r1/gulf-breeze-core-2.3.16-dev-checkpoint-r1.zip | sed -n '1p' | cut -d/ -f1)" = "gulf-breeze-core"
+          test "$(unzip -Z1 validation-2.3.16-r2/gulf-breeze-core-2.3.16-dev-checkpoint-r2.zip | sed -n '1p' | cut -d/ -f1)" = "gulf-breeze-core"
           rm -rf /tmp/gb-core
           mkdir -p /tmp/gb-core
-          unzip -q validation-2.3.16-r1/gulf-breeze-core-2.3.16-dev-checkpoint-r1.zip -d /tmp/gb-core
-          GB_PLUGIN_DIR=/tmp/gb-core/gulf-breeze-core node validation-2.3.16-r1/static-build-test.mjs
-          node --check validation-2.3.16-r1/admin-request-test.js
-          node --check validation-2.3.16-r1/browser-access-test.js
+          unzip -q validation-2.3.16-r2/gulf-breeze-core-2.3.16-dev-checkpoint-r2.zip -d /tmp/gb-core
+          GB_PLUGIN_DIR=/tmp/gb-core/gulf-breeze-core node validation-2.3.16-r2/static-build-test.mjs
+          node --check validation-2.3.16-r2/admin-request-test.js
+          node --check validation-2.3.16-r2/browser-access-test.js
           find /tmp/gb-core/gulf-breeze-core -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-core/gulf-breeze-core
 
@@ -66,20 +66,20 @@ jobs:
           WP='/tmp/wp-cli.phar --path=/tmp/wordpress'
           $WP plugin install "https://raw.githubusercontent.com/rodneycrawford75006-cell/gulf-breeze-releases/main/gulf-breeze-core-2.2.1.zip" --activate --quiet
           $WP option update gb_config '{"legal_name":"VALIDATION SENTINEL","timezone":"America/Chicago"}' --format=json
-          $WP plugin install "$GITHUB_WORKSPACE/validation-2.3.16-r1/gulf-breeze-core-2.3.16-dev-checkpoint-r1.zip" --force --quiet
+          $WP plugin install "$GITHUB_WORKSPACE/validation-2.3.16-r2/gulf-breeze-core-2.3.16-dev-checkpoint-r2.zip" --force --quiet
           $WP plugin activate gulf-breeze-core --quiet
           $WP eval 'if (!class_exists("Gulf_Breeze_Configuration")) { throw new Exception("Core class missing after upgrade."); } if (GB_CORE_VERSION !== "2.3.16-dev") { throw new Exception("Unexpected Core version: ".GB_CORE_VERSION); } $cfg=get_option("gb_config",array()); if (($cfg["legal_name"] ?? "") !== "VALIDATION SENTINEL") { throw new Exception("Configuration was not preserved."); } echo "Upgrade and option preservation passed.\n";'
 
       - name: Test controlled internal access
         run: |
           set -euo pipefail
-          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/validation-2.3.16-r1/core-access-test.php" --path=/tmp/wordpress
+          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/validation-2.3.16-r2/core-access-test.php" --path=/tmp/wordpress
 
       - name: Test concurrent administration and student access
         run: |
           set -euo pipefail
-          /tmp/wp-cli.phar eval '$user=get_user_by("login","gb_validation_tester"); if (!$user) { throw new Exception("Validation tester missing."); } $expiration=time()+3600; echo wp_json_encode(array("name"=>LOGGED_IN_COOKIE,"value"=>wp_generate_auth_cookie($user->ID,$expiration,"logged_in"),"domain"=>"127.0.0.1","path"=>"/","expires"=>$expiration,"httpOnly"=>true,"secure"=>false,"sameSite"=>"Lax"));' --path=/tmp/wordpress > "$GITHUB_WORKSPACE/validation-2.3.16-r1/auth-cookie.json"
-          /tmp/wp-cli.phar eval '$user=get_user_by("login","admin"); if (!$user) { throw new Exception("Validation administrator missing."); } $expiration=time()+3600; echo wp_json_encode(array(array("name"=>AUTH_COOKIE,"value"=>wp_generate_auth_cookie($user->ID,$expiration,"auth")),array("name"=>LOGGED_IN_COOKIE,"value"=>wp_generate_auth_cookie($user->ID,$expiration,"logged_in"))));' --path=/tmp/wordpress > "$GITHUB_WORKSPACE/validation-2.3.16-r1/admin-auth-cookies.json"
+          /tmp/wp-cli.phar eval '$user=get_user_by("login","gb_validation_tester"); if (!$user) { throw new Exception("Validation tester missing."); } $expiration=time()+3600; echo wp_json_encode(array("name"=>LOGGED_IN_COOKIE,"value"=>wp_generate_auth_cookie($user->ID,$expiration,"logged_in"),"domain"=>"127.0.0.1","path"=>"/","expires"=>$expiration,"httpOnly"=>true,"secure"=>false,"sameSite"=>"Lax"));' --path=/tmp/wordpress > "$GITHUB_WORKSPACE/validation-2.3.16-r2/auth-cookie.json"
+          /tmp/wp-cli.phar eval '$user=get_user_by("login","admin"); if (!$user) { throw new Exception("Validation administrator missing."); } $expiration=time()+3600; echo wp_json_encode(array(array("name"=>AUTH_COOKIE,"value"=>wp_generate_auth_cookie($user->ID,$expiration,"auth")),array("name"=>LOGGED_IN_COOKIE,"value"=>wp_generate_auth_cookie($user->ID,$expiration,"logged_in"))));' --path=/tmp/wordpress > "$GITHUB_WORKSPACE/validation-2.3.16-r2/admin-auth-cookies.json"
           /tmp/wp-cli.phar eval 'update_option("gb_curriculum_migration_version","2.3.2",false); delete_option("gb_core_migration_runtime"); delete_option("gb_core_migration_lock"); wp_clear_scheduled_hook("gb_core_run_curriculum_migrations"); wp_clear_scheduled_hook("gb_core_run_privacy_migration"); wp_clear_scheduled_hook("gb_core_migration_watchdog"); add_option("gb_core_migration_lock","admin-request-validation|".time(),"",false);' --path=/tmp/wordpress
           /tmp/wp-cli.phar server --path=/tmp/wordpress --host=127.0.0.1 --port=8080 >/tmp/wordpress-server.log 2>&1 &
           WP_SERVER_PID=$!
@@ -88,8 +88,8 @@ jobs:
             if curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null; then break; fi
             sleep 1
           done
-          node "$GITHUB_WORKSPACE/validation-2.3.16-r1/admin-request-test.js"
+          node "$GITHUB_WORKSPACE/validation-2.3.16-r2/admin-request-test.js"
           /tmp/wp-cli.phar eval 'if ((string)get_option("gb_curriculum_migration_version","") !== "2.3.2") { throw new Exception("wp-admin request executed migration work."); } if (!wp_next_scheduled("gb_core_run_curriculum_migrations")) { throw new Exception("wp-admin request did not coalesce a background event."); } delete_option("gb_core_migration_lock"); update_option("gb_curriculum_migration_version","2.3.9",false);' --path=/tmp/wordpress
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-          node "$GITHUB_WORKSPACE/validation-2.3.16-r1/browser-access-test.js"
+          node "$GITHUB_WORKSPACE/validation-2.3.16-r2/browser-access-test.js"
