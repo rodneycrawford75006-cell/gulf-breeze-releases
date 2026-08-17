@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.3.16",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.16-r2.zip",
-  "sha256": "ce60c03be9a87e2d7238a863b4fbc4cc04d260264a6bedc9b54a538b86c71548",
-  "released_at": "2026-08-17T10:24:00-05:00",
-  "notes": "Core 2.3.16 revision 2 retains the bounded background migration workers, atomic lock, retry cooldowns, stale-lock recovery, and watchdog introduced in revision 1. It expands the adult_en_034 work-zone boundary lesson to 934 live-equivalent readable words for its 7-minute requirement without lowering the 120-wpm threshold. The corrected stable package is byte-for-byte identical to the validated revision 2 checkpoint except that its plugin header and GB_CORE_VERSION runtime constant now identify stable version 2.3.16. The validated code passed archive and PHP syntax checks, disposable WordPress upgrade and configuration preservation, controlled internal access, concurrent authenticated wp-admin requests, full sequential migration checks through 2.3.9, idempotency, course invariants, and Chromium student access."
+  "version": "2.3.17",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.17-r1.zip",
+  "sha256": "4436eecd90cead727d7488703af8f7ae67680ffa1a07246e0a623c27cc599e2f",
+  "released_at": "2026-08-17T17:57:17-05:00",
+  "notes": "Core 2.3.17 adds the bounded curriculum migration checkpoint 2.3.10 for the 18 audited overfilled Adult English lessons: 1–16, 18, and 38. Each proposed lesson remains within 120–150 readable words per assigned minute while preserving all timers, required objectives, course status, registry mapping, sign galleries, nine sections, the exact ordered 56-item curriculum, 46 lessons, 10 quizzes, and 330 instructional minutes. The migration preflights all lesson bodies, rolls back on a write or preservation failure, and is idempotent. The stable package differs from the fully validated checkpoint only in version identifiers, the production audit label, and release wording. Under Construction, publication, enrollment, and controlled tester access are unchanged."
 }
