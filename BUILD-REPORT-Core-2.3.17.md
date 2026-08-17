@@ -44,14 +44,18 @@ Core 2.3.17-dev adds the bounded curriculum migration checkpoint `2.3.10` for th
 
 - Static source, key-order, branding, migration-control, and word-band test: PASS.
 - Transactional model for rollback, preservation, and idempotent retry: PASS.
+- Disposable WordPress + LearnPress 4.4.4 migration regression: PASS.
+- Forced post-write preservation failure and full rollback: PASS.
+- Successful migration and forced idempotent rerun: PASS.
+- Exact curriculum order, objective/timer metadata, course status, registry, sign galleries, and 330-minute ledger preservation: PASS.
 - ZIP integrity test: PASS.
 - Package root: `gulf-breeze-core/`.
 - Package SHA-256: `2a703e34030779fc2611322820d9b6a8ae2c17d4cd754c32f48ac9ef1fb318a8`.
+- Validation branch head: `7aa67f0c02986f17430b863af14c33b7952ed0e5`.
+- Successful GitHub Actions run: `32077703757` (50 seconds; August 17, 2026).
 
-## Remaining release gate
+## Remaining release boundary
 
-The current workspace has no PHP runtime or disposable WordPress installation. A dedicated WordPress + LearnPress 4.4.4 regression fixture and manually dispatched CI workflow are staged beside the package but have not been published or run. They cover PHP syntax, forced preservation failure and full rollback, successful migration, idempotent forced rerun, exact curriculum-order comparison, objective and timer metadata, course status, registry mapping, galleries, and the 330-minute ledger.
-
-Before publishing or installing this checkpoint, obtain explicit approval to place the development checkpoint and validation workflow on a GitHub validation branch, run that disposable test, and review its evidence. Public release publication and live installation remain separate approval steps.
+The development checkpoint is validated on the isolated branch. Public release publication and live installation remain separate approval steps and were not authorized by this validation task.
 
 Under Construction remains enabled. No live WordPress content, settings, publication state, enrollment, or access controls were changed during this checkpoint.
