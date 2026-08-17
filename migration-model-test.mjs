@@ -5,7 +5,7 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 function words(html) {
-  return (html.replace(/<[^>]*>/g, ' ').match(/\b[\p{L}\p{N}][\p{L}\p{N}’'-]*\b/gu) || []).length;
+  return (html.replace(/<[^>]*>/g, '').match(/\b[\p{L}\p{N}][\p{L}\p{N}’'-]*\b/gu) || []).length;
 }
 function filler(count) {
   return `<p>${Array(count).fill('preserved').join(' ')}</p>`;
@@ -21,6 +21,7 @@ for (const match of source.matchAll(/'(adult_en_\d+)'\s*=>\s*array\((.*?)\n\t\),
     mode: body.match(/'mode'\s*=>\s*'([^']+)'/)[1],
     removeVersion: body.match(/'remove_version'\s*=>\s*'([^']+)'/)[1],
     html: body.match(/<<<'HTML'\n([\s\S]*?)\nHTML,/)?.[1] || '',
+    safetyHtml: body.match(/'safety_html'\s*=>\s*'([^']*)'/)?.[1] || '',
   });
 }
 
@@ -50,11 +51,12 @@ const locked = {
 
 function propose(entry, lesson) {
   const marker = `gb-timing-rebalance-2.3.10:${entry.key}`;
+  const rebalanceHtml = `${entry.html.trim()}${entry.safetyHtml ? `\n${entry.safetyHtml.trim()}` : ''}`;
   let clean = lesson.content.replace(new RegExp(`<!-- ${marker} -->[\\s\\S]*?<!-- /gb-timing-rebalance-2\\.3\\.10 -->`, 'g'), '');
-  if (entry.mode === 'replace') return `<!-- ${marker} -->${entry.html.trim()}<!-- /gb-timing-rebalance-2.3.10 -->`;
+  if (entry.mode === 'replace') return `<!-- ${marker} -->${rebalanceHtml}<!-- /gb-timing-rebalance-2.3.10 -->`;
   const oldMarker = `gb-duration-hardening-${entry.removeVersion}:${entry.key}`;
   clean = clean.replace(new RegExp(`<!-- ${oldMarker.replaceAll('.', '\\.') } -->[\\s\\S]*?<!-- /gb-duration-hardening-${entry.removeVersion.replaceAll('.', '\\.') } -->`, 'g'), '');
-  return `${clean.trim()}<!-- ${marker} -->${entry.html.trim()}<!-- /gb-timing-rebalance-2.3.10 -->`;
+  return `${clean.trim()}\n<!-- ${marker} -->\n${rebalanceHtml}\n<!-- /gb-timing-rebalance-2.3.10 -->`;
 }
 
 const original = structuredClone([...lessons.entries()]);
@@ -63,7 +65,7 @@ for (const entry of entries) {
   const lesson = lessons.get(entry.key);
   const content = propose(entry, lesson);
   const count = words(content);
-  assert(count >= lesson.minutes * 120 && count <= lesson.minutes * 150, `${entry.key} failed the model readability gate: ${count}.`);
+  assert(count >= lesson.minutes * 123 && count <= lesson.minutes * 150, `${entry.key} failed the model safety-margin gate: ${count}.`);
   assert(!lesson.content.includes('gb-sign-gallery') || content.includes('gb-sign-gallery'), `${entry.key} lost its sign gallery.`);
   planned.set(entry.key, { ...lesson, content, status: 'timing_rebalance_2_3_10_dev', audit: count });
 }

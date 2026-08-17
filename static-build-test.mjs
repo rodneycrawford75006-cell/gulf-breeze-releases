@@ -19,7 +19,8 @@ function walk(directory) {
 }
 
 function words(html) {
-  return (html.replace(/<[^>]*>/g, ' ').replace(/&[a-z]+;/gi, ' ').match(/\b[\p{L}\p{N}][\p{L}\p{N}’'-]*\b/gu) || []).length;
+  // Match WordPress's wp_strip_all_tags() + PHP Unicode regex behavior.
+  return (html.replace(/<[^>]*>/g, '').match(/\b[\p{L}\p{N}][\p{L}\p{N}’'-]*\b/gu) || []).length;
 }
 
 const php = fs.readFileSync(mainFile, 'utf8');
@@ -41,7 +42,8 @@ for (const match of source.matchAll(entryPattern)) {
   const mode = body.match(/'mode'\s*=>\s*'([^']+)'/)?.[1];
   const removeVersion = body.match(/'remove_version'\s*=>\s*'([^']+)'/)?.[1];
   const html = body.match(/<<<'HTML'\n([\s\S]*?)\nHTML,/)?.[1] || '';
-  entries.push({ key: match[1], mode, removeVersion, html });
+  const safetyHtml = body.match(/'safety_html'\s*=>\s*'([^']*)'/)?.[1] || '';
+  entries.push({ key: match[1], mode, removeVersion, html, safetyHtml });
 }
 assert(JSON.stringify(entries.map((entry) => entry.key)) === JSON.stringify(expected), 'Timing source does not contain the exact 18 approved lesson keys in order.');
 assert(entries.every((entry) => ['replace', 'rebalance'].includes(entry.mode) && entry.removeVersion), 'A timing-source instruction is incomplete.');
@@ -51,8 +53,8 @@ const baseWords = { 1:439,2:488,3:486,4:453,5:850,6:610,7:577,8:624,9:607,10:465
 const minutes = { 1:2,2:3,3:3,4:2,5:4,6:5,7:5,8:5,9:5,10:5,11:8,12:7,13:7,14:8,15:7,16:4,18:6,38:5 };
 for (const entry of entries) {
   const number = Number(entry.key.slice(-3));
-  const total = entry.mode === 'replace' ? words(entry.html) : baseWords[number] + words(entry.html);
-  assert(total >= minutes[number] * 120 && total <= minutes[number] * 150, `${entry.key} is outside its audited 120-150 words/minute band: ${total}.`);
+  const total = entry.mode === 'replace' ? words(entry.html) : baseWords[number] + words(`${entry.html}\n${entry.safetyHtml}`);
+  assert(total >= minutes[number] * 123 && total <= minutes[number] * 150, `${entry.key} lacks the 123-150 words/minute validation margin: ${total}.`);
 }
 
 for (const needle of [
