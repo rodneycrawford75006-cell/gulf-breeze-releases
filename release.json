@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.3.16-dev",
+  "version": "2.3.16",
   "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.16-r2.zip",
   "sha256": "0dcc14913f164092ede17a0484ed3183011661478616e0b0202a66920350b25e",
-  "released_at": "2026-08-17T09:19:15-05:00",
+  "released_at": "2026-08-17T10:08:00-05:00",
   "notes": "Core 2.3.16 revision 2 retains the bounded background migration workers, atomic lock, retry cooldowns, stale-lock recovery, and watchdog introduced in revision 1. It expands the adult_en_034 work-zone boundary lesson to 934 live-equivalent readable words for its 7-minute requirement without lowering the 120-wpm threshold. The exact published package passed archive and PHP syntax checks, disposable WordPress upgrade and configuration preservation, controlled internal access, concurrent authenticated wp-admin requests, full sequential migration checks through 2.3.9, idempotency, course invariants, and Chromium student access."
 }
