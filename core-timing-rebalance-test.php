@@ -15,6 +15,11 @@ $administrator->add_cap( 'edit_lp_lessons' );
 $administrator->add_cap( 'edit_others_lp_lessons' );
 $administrator->add_cap( 'publish_lp_lessons' );
 $administrator->add_cap( 'read_private_lp_lessons' );
+$administrator->add_cap( 'edit_lp_course' );
+$administrator->add_cap( 'edit_lp_courses' );
+$administrator->add_cap( 'edit_others_lp_courses' );
+$administrator->add_cap( 'publish_lp_courses' );
+$administrator->add_cap( 'read_private_lp_courses' );
 
 if ( ! user_can( $administrator, 'edit_lp_lessons' ) ) {
 	throw new RuntimeException( 'Disposable WordPress administrator lacks LearnPress lesson-edit capability.' );
@@ -23,6 +28,9 @@ if ( ! user_can( $administrator, 'edit_lp_lessons' ) ) {
 $course_id = wp_insert_post( array( 'post_type' => 'lp_course', 'post_status' => 'publish', 'post_title' => 'Gulf Breeze Timing Validation Course', 'post_author' => (int) $administrator->ID ) );
 if ( ! $course_id || is_wp_error( $course_id ) ) {
 	throw new RuntimeException( 'Could not create the disposable course.' );
+}
+if ( ! user_can( $administrator, 'edit_lp_course', $course_id ) ) {
+	throw new RuntimeException( 'Disposable WordPress administrator cannot edit the LearnPress validation course.' );
 }
 update_post_meta( $course_id, '_gb_course_key', 'adult_en' );
 
@@ -46,6 +54,7 @@ for ( $number = 1; $number <= 46; $number++ ) {
 	$lesson_id = wp_insert_post( array( 'post_type'=>'lp_lesson', 'post_status'=>'publish', 'post_title'=>'Validation Lesson '.$number, 'post_content'=>$content, 'post_author'=>(int)$administrator->ID ) );
 	if ( ! $lesson_id || is_wp_error( $lesson_id ) ) throw new RuntimeException( 'Could not create lesson ' . $number . '.' );
 	$lesson_ids[ $number ] = (int) $lesson_id;
+	if ( ! user_can( $administrator, 'edit_lp_lesson', $lesson_id ) ) throw new RuntimeException( 'Disposable WordPress administrator cannot edit validation lesson ' . $number . '.' );
 	update_post_meta( $lesson_id, '_gb_blueprint_key', $key );
 	update_post_meta( $lesson_id, '_gb_required_minutes', $minutes );
 	update_post_meta( $lesson_id, '_gb_required_seconds', $minutes * 60 );
