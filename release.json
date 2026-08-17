@@ -1,8 +1,8 @@
 {
   "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.3.15-dev",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.15.zip",
-  "sha256": "457aecc513077caa71753132f26e130052a7449a02363b4ed8daaa4dc318f580",
-  "released_at": "2026-08-16T01:09:10-05:00",
-  "notes": "Core 2.3.15 revision 1 corrects the verified Topic 4.1.7 adult_en_032 duration-hardening boundary and safely resumes curriculum migrations 2.3.3 through 2.3.9. The corrected lesson candidate contains 976 readable words for an eight-minute minimum of 960. The LearnPress cache-refresh helper now preserves the administrator-selected parent course status. Expanded validation preserves all 9 sections, 46 lessons, 10 quizzes, 56 ordered items, 330 instructional minutes, student-facing section descriptions, privacy migration state, closed comments and pings, controlled access, sequential navigation, anonymous protection, and Under Construction status."
+  "version": "2.3.16-dev",
+  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.16.zip",
+  "sha256": "d7354cf15f2e345dde8f9434c9cda83a0ac81b98c6d57e37c19421859839815c",
+  "released_at": "2026-08-17T08:48:55-05:00",
+  "notes": "Core 2.3.16 revision 1 prevents wp-admin migration hangs by moving curriculum and privacy migrations out of ordinary admin requests into bounded background workers. It adds an atomic migration lock with stale-lock recovery, one versioned checkpoint per worker run, failure cooldowns, and a watchdog that respects retry state. Expanded validation covers repeated scheduling, lock exclusion, forced partial-failure retry, singular migration markers, stale-lock recovery, sequential checkpoints through 2.3.9, idempotency and course invariants, twenty concurrent authenticated wp-admin requests, upgrade preservation, and Chromium student access. The validated package preserves all 9 sections, 46 lessons, 10 quizzes, 56 ordered items, 330 instructional minutes, privacy state, closed comments and pings, controlled access, sequential navigation, anonymous protection, and Under Construction status."
 }
