@@ -1,6 +1,9 @@
 name: Validate Gulf Breeze Core 2.3.17 timing rebalance
 
 on:
+  push:
+    branches:
+      - agent/core-2.3.17-validation
   workflow_dispatch:
 
 permissions:
