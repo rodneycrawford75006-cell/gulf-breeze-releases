@@ -96,15 +96,17 @@ jobs:
           GBVQG_FIXTURE_JSON: ${{ github.workspace }}/video-gate-fixture.json
         run: |
           set -euo pipefail
-          /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress > /tmp/gbvqg-wp-server.log 2>&1 &
+          pushd /tmp/wordpress >/dev/null
+          /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 > /tmp/gbvqg-wp-server.log 2>&1 &
           server_pid=$!
+          popd >/dev/null
           trap 'kill "$server_pid" || true; cat /tmp/gbvqg-wp-server.log' EXIT
           for attempt in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null; then break; fi
             sleep 1
           done
           curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null
-          node video-gate-browser-test.mjs
+          node "$GITHUB_WORKSPACE/video-gate-browser-test.mjs"
 
       - name: Confirm audit evidence
         run: |
