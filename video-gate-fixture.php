@@ -199,9 +199,10 @@ delete_user_meta( $student_id, $meta_key );
 foreach ( array( 'csea' => &$csea, 'water' => &$water ) as $key => &$row ) {
 	$gate = $found[ $row['lesson_id'] ];
 	$row['gate_id'] = $gate['gate_id'];
-	$row['lesson_url'] = get_permalink( $row['lesson_id'] );
-	$row['quiz_url'] = get_permalink( $row['quiz_id'] );
-	$row['next_url'] = get_permalink( $row['next_id'] );
+	$row['lesson_url'] = learn_press_get_course_item_permalink( $course_id, $row['lesson_id'] );
+	$row['quiz_url'] = learn_press_get_course_item_permalink( $course_id, $row['quiz_id'] );
+	$row['next_url'] = learn_press_get_course_item_permalink( $course_id, $row['next_id'] );
+	gbvqg_assert( $row['lesson_url'] && $row['quiz_url'] && $row['next_url'], 'LearnPress did not generate canonical curriculum-item URLs.' );
 }
 unset( $row );
 
