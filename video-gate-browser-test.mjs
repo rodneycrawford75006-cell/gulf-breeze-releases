@@ -18,9 +18,12 @@ await page.locator('#user_login').waitFor({ state: 'visible', timeout: 15000 });
 await page.locator('#user_login').fill(fixture.student.username);
 await page.locator('#user_pass').fill(fixture.student.password);
 await page.locator('#loginform').evaluate((form, action) => { form.action = action; }, loginUrl);
-await page.locator('#wp-submit').click();
 try {
-  await page.waitForURL(url => !url.pathname.endsWith('/wp-login.php'), { timeout: 15000 });
+  await Promise.all([
+    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }),
+    page.locator('#loginform').evaluate(form => form.submit()),
+  ]);
+  assert(!new URL(page.url()).pathname.endsWith('/wp-login.php'), 'WordPress returned the browser to the login form.');
 } catch {
   const loginError = await page.locator('#login_error, .message').allTextContents();
   assert.fail(`Disposable student login failed at ${page.url()}: ${loginError.join(' | ') || 'no WordPress login error was rendered'}`);
