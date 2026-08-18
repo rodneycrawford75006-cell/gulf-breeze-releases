@@ -11,9 +11,11 @@ const expectText = async (text) => {
   await page.getByText(text, { exact: false }).first().waitFor({ state: 'visible', timeout: 15000 });
 };
 
-await page.goto(new URL('/wp-login.php', fixture.base_url).href);
+const loginUrl = new URL('/wp-login.php', fixture.base_url).href;
+await page.goto(loginUrl);
 await page.locator('#user_login').fill(fixture.student.username);
 await page.locator('#user_pass').fill(fixture.student.password);
+await page.locator('#loginform').evaluate((form, action) => { form.action = action; }, loginUrl);
 await page.locator('#wp-submit').click();
 try {
   await page.waitForURL(url => !url.pathname.endsWith('/wp-login.php'), { timeout: 15000 });
