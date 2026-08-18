@@ -87,11 +87,11 @@ jobs:
           /tmp/wp-cli.phar rewrite structure '/%postname%/' --hard --path=/tmp/wordpress
           /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/video-gate-fixture.php" --path=/tmp/wordpress
 
-      - name: Install Chromium
+      - name: Install Playwright client
         run: |
           set -euo pipefail
           npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
+          command -v google-chrome
 
       - name: Run real-browser student-path and bypass tests
         env:

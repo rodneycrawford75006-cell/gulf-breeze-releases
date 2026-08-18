@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 
 const fixture = JSON.parse(fs.readFileSync(process.env.GBVQG_FIXTURE_JSON, 'utf8'));
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const page = await browser.newPage();
-await page.route(/\\.(?:css|png|jpe?g|gif|svg|webp|woff2?|ttf)(?:\\?.*)?$/i, route => route.abort());
+await page.route(/\.(?:css|png|jpe?g|gif|svg|webp|woff2?|ttf)(?:\?.*)?$/i, route => route.abort());
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const expectText = async (text) => {
