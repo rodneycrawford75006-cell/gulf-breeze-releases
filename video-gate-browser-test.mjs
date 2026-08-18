@@ -29,7 +29,17 @@ try {
 async function openLesson(gate) {
   await page.goto(gate.lesson_url, { waitUntil: 'domcontentloaded' });
   await page.bringToFront();
-  await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').waitFor({ state: 'attached' });
+  try {
+    await page.locator('iframe[src*="youtube-nocookie.com/embed/"]').waitFor({ state: 'attached', timeout: 15000 });
+  } catch {
+    const diagnostic = {
+      expectedLessonUrl: gate.lesson_url,
+      actualUrl: page.url(),
+      title: await page.title(),
+      body: (await page.locator('body').innerText()).slice(0, 4000),
+    };
+    assert.fail(`LearnPress lesson did not render the required video iframe: ${JSON.stringify(diagnostic)}`);
+  }
   const config = await page.evaluate(() => {
     const scripts = [...document.scripts].map(s => s.textContent || '').join('\n');
     const nonce = scripts.match(/var ajaxNonce = ("[^"]+")/);
