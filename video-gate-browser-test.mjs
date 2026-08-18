@@ -194,7 +194,7 @@ let config = await completeThroughRealAdapter(fixture.csea);
 await page.goto(fixture.csea.quiz_url, { waitUntil: 'domcontentloaded' });
 await expectText('Quick Video Check');
 const firstQuestion = await submitAnswer(false);
-await expectText('Video Check Not Passed');
+await expectText('Video Check Needs Review');
 
 config = await openLesson(fixture.csea);
 await verifyIncomplete(config, 'wrong answer invalidation');
