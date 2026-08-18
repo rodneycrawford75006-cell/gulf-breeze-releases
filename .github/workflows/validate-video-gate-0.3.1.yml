@@ -82,6 +82,8 @@ jobs:
           GBVQG_FIXTURE_JSON: ${{ github.workspace }}/video-gate-fixture.json
         run: |
           set -euo pipefail
+          /tmp/wp-cli.phar option update home 'http://127.0.0.1:8080' --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update siteurl 'http://127.0.0.1:8080' --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar rewrite structure '/%postname%/' --hard --path=/tmp/wordpress
           /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/video-gate-fixture.php" --path=/tmp/wordpress
 
