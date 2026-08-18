@@ -14,11 +14,13 @@ const expectText = async (text) => {
 await page.goto(new URL('/wp-login.php', fixture.base_url).href);
 await page.locator('#user_login').fill(fixture.student.username);
 await page.locator('#user_pass').fill(fixture.student.password);
-await Promise.all([
-  page.waitForLoadState('domcontentloaded'),
-  page.locator('#wp-submit').click(),
-]);
-assert(!page.url().includes('wp-login.php'), 'Disposable student login failed.');
+await page.locator('#wp-submit').click();
+try {
+  await page.waitForURL(url => !url.pathname.endsWith('/wp-login.php'), { timeout: 15000 });
+} catch {
+  const loginError = await page.locator('#login_error, .message').allTextContents();
+  assert.fail(`Disposable student login failed at ${page.url()}: ${loginError.join(' | ') || 'no WordPress login error was rendered'}`);
+}
 
 async function openLesson(gate) {
   await page.goto(gate.lesson_url, { waitUntil: 'domcontentloaded' });
