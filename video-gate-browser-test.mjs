@@ -141,6 +141,7 @@ async function installYouTubeStub() {
   await page.route('https://www.youtube.com/iframe_api', async route => {
     await route.fulfill({
       contentType: 'application/javascript',
+      headers: { 'cache-control': 'no-store' },
       body: `(() => {
         window.YT = { PlayerState: { PLAYING: 1, ENDED: 0 }, Player: function(id, options) {
           let state = -1, started = 0, ended = false;
@@ -162,6 +163,8 @@ async function installYouTubeStub() {
 
 async function completeThroughRealAdapter(gate) {
   const config = await openLesson(gate);
+  await page.waitForFunction(() => window.YT?.Player && typeof window.onYouTubeIframeAPIReady === 'function', null, { timeout: 10000 });
+  await page.evaluate(() => window.onYouTubeIframeAPIReady());
   await page.waitForFunction(() => window.__gbvqgTestPlayer, null, { timeout: 10000 });
   await page.evaluate(() => window.__gbvqgTestPlayer.play());
   await sleep(10300);
