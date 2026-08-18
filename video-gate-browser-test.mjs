@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 const fixture = JSON.parse(fs.readFileSync(process.env.GBVQG_FIXTURE_JSON, 'utf8'));
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
+await page.route(/\\.(?:css|png|jpe?g|gif|svg|webp|woff2?|ttf)(?:\\?.*)?$/i, route => route.abort());
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const expectText = async (text) => {
@@ -12,7 +13,8 @@ const expectText = async (text) => {
 };
 
 const loginUrl = new URL('/wp-login.php', fixture.base_url).href;
-await page.goto(loginUrl);
+await page.goto(loginUrl, { waitUntil: 'commit', timeout: 15000 });
+await page.locator('#user_login').waitFor({ state: 'visible', timeout: 15000 });
 await page.locator('#user_login').fill(fixture.student.username);
 await page.locator('#user_pass').fill(fixture.student.password);
 await page.locator('#loginform').evaluate((form, action) => { form.action = action; }, loginUrl);
