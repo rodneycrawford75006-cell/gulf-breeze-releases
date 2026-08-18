@@ -5,7 +5,7 @@ on:
     branches:
       - agent/video-gate-0.3.1-validation
     paths:
-      - gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip
+      - gulf-breeze-video-playback-quiz-gate-v0.3.1-revision-1-dev-checkpoint.zip
       - video-gate-fixture.php
       - video-gate-browser-test.mjs
       - video-gate-upgrade-fixture.php
@@ -46,18 +46,18 @@ jobs:
       - name: Verify unchanged checkpoint and PHP syntax
         run: |
           set -euo pipefail
-          test "$(sha256sum gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip | cut -d' ' -f1)" = "d13ea3c33367baad75fcde471615ce285d914825e2e75451c5aa8b2fe03be949"
-          test "$(unzip -Z1 gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip | sed -n '1p' | cut -d/ -f1)" = "gulfbreeze-video-quiz-gate"
+          test "$(sha256sum gulf-breeze-video-playback-quiz-gate-v0.3.1-revision-1-dev-checkpoint.zip | cut -d' ' -f1)" = "58253dfde93954d55442f0047273d25ca15dada799143695f14bf82c2e38016b"
+          test "$(unzip -Z1 gulf-breeze-video-playback-quiz-gate-v0.3.1-revision-1-dev-checkpoint.zip | sed -n '1p' | cut -d/ -f1)" = "gulfbreeze-video-quiz-gate"
           rm -rf /tmp/gbvqg-031
           mkdir -p /tmp/gbvqg-031
-          unzip -q gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip -d /tmp/gbvqg-031
+          unzip -q gulf-breeze-video-playback-quiz-gate-v0.3.1-revision-1-dev-checkpoint.zip -d /tmp/gbvqg-031
           find /tmp/gbvqg-031 -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l video-gate-fixture.php
           php -l video-gate-upgrade-fixture.php
           ! grep -RniE 'Drive Smart|drivesmart' /tmp/gbvqg-031
           ! grep -RniE 'ACTIVE_STRICT_COURSES|RETIRED_LEGACY_COURSES|\b(7301|6772|7391|1641|1410)\b' /tmp/gbvqg-031
-          grep -Fq "Version: 0.3.1-dev" /tmp/gbvqg-031/gulfbreeze-video-quiz-gate/gulfbreeze-video-quiz-gate.php
-          grep -Fq "const VERSION       = '0.3.1-dev';" /tmp/gbvqg-031/gulfbreeze-video-quiz-gate/gulfbreeze-video-quiz-gate.php
+          grep -Fq "Version: 0.3.1-dev-r1" /tmp/gbvqg-031/gulfbreeze-video-quiz-gate/gulfbreeze-video-quiz-gate.php
+          grep -Fq "const VERSION       = '0.3.1-dev-r1';" /tmp/gbvqg-031/gulfbreeze-video-quiz-gate/gulfbreeze-video-quiz-gate.php
 
       - name: Install disposable WordPress, LearnPress, and upgrade fixture
         run: |
@@ -74,8 +74,8 @@ jobs:
           (cd /tmp/gbvqg-old && zip -qr /tmp/gulfbreeze-video-quiz-gate-0.2.33-fixture.zip gulfbreeze-video-quiz-gate)
           /tmp/wp-cli.phar plugin install /tmp/gulfbreeze-video-quiz-gate-0.2.33-fixture.zip --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar option update gbvqg_events '[{"event":"pre-upgrade-sentinel"}]' --format=json --path=/tmp/wordpress
-          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-video-playback-quiz-gate-v0.3.1-dev-checkpoint.zip" --force --activate --path=/tmp/wordpress --quiet
-          /tmp/wp-cli.phar eval 'if (!class_exists("GulfBreeze_Video_Quiz_Gate") || GulfBreeze_Video_Quiz_Gate::VERSION !== "0.3.1-dev") { throw new Exception("Unexpected Video Gate build."); } $events=get_option("gbvqg_events",array()); if (($events[0]["event"]??"")!=="pre-upgrade-sentinel") { throw new Exception("Upgrade did not preserve prior audit events."); }' --path=/tmp/wordpress
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-video-playback-quiz-gate-v0.3.1-revision-1-dev-checkpoint.zip" --force --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar eval 'if (!class_exists("GulfBreeze_Video_Quiz_Gate") || GulfBreeze_Video_Quiz_Gate::VERSION !== "0.3.1-dev-r1") { throw new Exception("Unexpected Video Gate build."); } $events=get_option("gbvqg_events",array()); if (($events[0]["event"]??"")!=="pre-upgrade-sentinel") { throw new Exception("Upgrade did not preserve prior audit events."); }' --path=/tmp/wordpress
 
       - name: Build disposable CSEA and water-safety fixture
         env:
