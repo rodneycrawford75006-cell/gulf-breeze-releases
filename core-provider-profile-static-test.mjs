@@ -21,6 +21,8 @@ assert(php.includes("'enabled_locales'          => array( 'label' => 'Enabled cu
 assert(php.includes("'environment_label'        => array( 'label' => 'Environment label', 'default' => 'DEVELOPMENT / SAMPLE DATA', 'required' => true )"), 'Environment label missing.');
 assert(php.includes("unset( $hash_values['_profile_hash'], $hash_values['_updated_at_utc'], $hash_values['_updated_by_user_id'] );"), 'Mutable audit fields are not excluded from the profile hash.');
 assert(readme.includes('Core 2.3.26 enrollment configuration foundation'), 'README checkpoint entry missing.');
+assert(readme.includes('Revision 2 normalizes fields absent from a legacy flat configuration'), 'Revision 2 normalization note missing.');
+assert(php.includes("array_key_exists( $key, $submitted ) ? $submitted[ $key ] : ( $field['default'] ?? '' )"), 'Legacy default normalization fix missing.');
 assert(!/Drive Smart|drivesmart/i.test(php + '\n' + readme), 'Prohibited legacy branding found.');
 assert(php.includes('46 focused lessons ranging from 2–22 minutes = exactly 330 instructional minutes'), 'Locked Adult English ledger statement changed.');
 
