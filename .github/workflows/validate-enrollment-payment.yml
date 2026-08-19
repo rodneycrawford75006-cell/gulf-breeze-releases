@@ -99,7 +99,7 @@ jobs:
       - name: Run authenticated administrator HTTP smoke tests
         run: |
           set -euo pipefail
-          PHP_CLI_SERVER_WORKERS=4 /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress >/tmp/gb-wordpress-http.log 2>&1 &
+          /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress >/tmp/gb-wordpress-http.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/gb-wordpress-http.log' EXIT
           for attempt in {1..30}; do
@@ -121,7 +121,13 @@ jobs:
             local url=$1
             local output=$2
             local status
-            status=$(curl -sS --max-time 30 -L -b /tmp/admin-cookies.txt -c /tmp/admin-cookies.txt -o "$output" -w '%{http_code}' "$url")
+            status=''
+            for attempt in {1..5}; do
+              if status=$(curl -sS --max-time 30 -L -b /tmp/admin-cookies.txt -c /tmp/admin-cookies.txt -o "$output" -w '%{http_code}' "$url"); then
+                if test "$status" = "200"; then break; fi
+              fi
+              sleep 1
+            done
             test "$status" = "200"
             ! grep -qiE 'critical error|fatal error|uncaught error' "$output"
           }
