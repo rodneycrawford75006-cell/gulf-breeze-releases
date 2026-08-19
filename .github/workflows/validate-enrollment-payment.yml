@@ -99,7 +99,7 @@ jobs:
 
       - name: Run real administrator and storefront HTTP integration
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           fixture_json=$(/tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/enrollment-payment-http-fixture.php" --path=/tmp/wordpress --quiet)
           product_id=$(jq -r '.product_id' <<<"$fixture_json")
           cart_url=$(jq -r '.cart_url' <<<"$fixture_json")
@@ -117,10 +117,17 @@ jobs:
           PHP_CLI_SERVER_WORKERS=4 /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress >/tmp/gb-wordpress-http.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/gb-wordpress-http.log' EXIT
+          ready_count=0
           for attempt in {1..30}; do
-            if curl -fsS http://127.0.0.1:8080/wp-login.php -o /tmp/login-page.html; then break; fi
+            if curl -fsS --max-time 10 http://127.0.0.1:8080/wp-login.php -o /tmp/login-page.html; then
+              ready_count=$((ready_count + 1))
+              if [ "$ready_count" -ge 3 ]; then break; fi
+            else
+              ready_count=0
+            fi
             sleep 1
           done
+          test "$ready_count" -ge 3
 
           assert_page() {
             local url=$1
@@ -128,16 +135,16 @@ jobs:
             local cookie_jar=${3:-}
             local status
             if [ -n "$cookie_jar" ]; then
-              status=$(curl -sS --max-time 30 -L -b "$cookie_jar" -c "$cookie_jar" -o "$output" -w '%{http_code}' "$url")
+              status=$(curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors --max-time 30 -L -b "$cookie_jar" -c "$cookie_jar" -o "$output" -w '%{http_code}' "$url")
             else
-              status=$(curl -sS --max-time 30 -L -o "$output" -w '%{http_code}' "$url")
+              status=$(curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors --max-time 30 -L -o "$output" -w '%{http_code}' "$url")
             fi
             test "$status" = "200"
             ! grep -qiE 'critical error|Call to undefined function wc_get_cart_item_data_hash|Page not found' "$output"
           }
 
-          curl -sS -c /tmp/admin-cookies.txt http://127.0.0.1:8080/wp-login.php -o /tmp/admin-login.html
-          curl -sS -L -b /tmp/admin-cookies.txt -c /tmp/admin-cookies.txt \
+          curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors -c /tmp/admin-cookies.txt http://127.0.0.1:8080/wp-login.php -o /tmp/admin-login.html
+          curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors -L -b /tmp/admin-cookies.txt -c /tmp/admin-cookies.txt \
             --data-urlencode 'log=admin' \
             --data-urlencode 'pwd=validation-only-password' \
             --data-urlencode 'wp-submit=Log In' \
@@ -154,7 +161,7 @@ jobs:
           echo 'PASS Add Plugins request'
 
           if [[ "$cart_url" == *'?'* ]]; then cart_add_url="${cart_url}&"; else cart_add_url="${cart_url}?"; fi
-          curl -sS -L -c /tmp/store-cookies.txt -b /tmp/store-cookies.txt \
+          curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors -L -c /tmp/store-cookies.txt -b /tmp/store-cookies.txt \
             "${cart_add_url}add-to-cart=${product_id}&quantity=1&gb_locale=en-US" \
             -o /tmp/cart.html -w '%{http_code}' | grep -qx '200'
           ! grep -qiE 'critical error|Page not found' /tmp/cart.html
