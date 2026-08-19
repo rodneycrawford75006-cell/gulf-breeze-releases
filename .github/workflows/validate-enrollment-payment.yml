@@ -1,0 +1,89 @@
+name: Validate Gulf Breeze Enrollment and Payment 0.1.0
+
+on:
+  push:
+    branches:
+      - agent/enrollment-payment-0.1.0-validation
+    paths:
+      - gulf-breeze-enrollment-payment-0.1.0-dev.zip
+      - gulf-breeze-catalog-cart-0.1.4.zip
+      - enrollment-payment-runtime-test.php
+      - validate-enrollment-payment-static.mjs
+      - .github/workflows/validate-enrollment-payment.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, openssl
+          coverage: none
+
+      - name: Verify SHA, layout, PHP syntax, branding, and static controls
+        run: |
+          set -euo pipefail
+          test "$(sha256sum gulf-breeze-enrollment-payment-0.1.0-dev.zip | cut -d' ' -f1)" = "7d95c6229df9379bfb175495cbb9ae69b011e180ef775e81e235814fc899bcc0"
+          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
+          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
+          test "$(sha256sum gulf-breeze-catalog-cart-0.1.4.zip | cut -d' ' -f1)" = "069d4f9c905277e91287e8a6c31b68ec14edb760b92f370747a18a238c120e4f"
+          mkdir -p /tmp/gb-ep-validation
+          unzip -q gulf-breeze-enrollment-payment-0.1.0-dev.zip -d /tmp/gb-ep-validation
+          GB_EP_PLUGIN_DIR=/tmp/gb-ep-validation/gulf-breeze-enrollment-payment node validate-enrollment-payment-static.mjs
+          find /tmp/gb-ep-validation/gulf-breeze-enrollment-payment -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-ep-validation/gulf-breeze-enrollment-payment
+
+      - name: Verify local MFA QR encoder
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs'; import vm from 'node:vm';
+          class E { constructor(tag){this.tag=tag;this.children=[];this.attrs={};this.className='';} setAttribute(k,v){this.attrs[k]=v;} appendChild(x){this.children.push(x);} replaceChildren(...x){this.children=x;} }
+          const context={window:{},document:{createElement:(tag)=>new E(tag)}}; vm.createContext(context);
+          vm.runInContext(fs.readFileSync('/tmp/gb-ep-validation/gulf-breeze-enrollment-payment/assets/qr-bundle.js','utf8'),context);
+          const target=new E('div'); context.window.GBLocalQRCode.render(target,'otpauth://totp/Gulf%20Breeze:test@example.invalid?secret=JBSWY3DPEHPK3PXP&issuer=Gulf%20Breeze&digits=6&period=30');
+          if(target.children.length!==1||target.children[0].children.length<21)throw new Error('QR render failed');
+          console.log('PASS local QR render');
+          JS
+
+      - name: Install disposable WordPress and dependencies
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x /tmp/wp-cli.phar
+          mkdir -p /tmp/wordpress
+          /tmp/wp-cli.phar core download --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar config create --path=/tmp/wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --skip-check --quiet
+          /tmp/wp-cli.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8080 --title='Gulf Breeze Enrollment Validation' --admin_user=admin --admin_password='validation-only-password' --admin_email=validation@example.invalid --skip-email --quiet
+          /tmp/wp-cli.phar plugin install woocommerce --version=11.0.1 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install learnpress --version=4.4.4 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-core-2.3.26-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-catalog-cart-0.1.4.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update ucp_options '{"status":1,"end_date_toggle":0,"whitelisted_roles":["administrator"]}' --format=json --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.1.0-dev.zip" --activate --path=/tmp/wordpress --quiet
+
+      - name: Run enrollment and payment runtime regression
+        run: |
+          set -euo pipefail
+          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/enrollment-payment-runtime-test.php" --path=/tmp/wordpress
