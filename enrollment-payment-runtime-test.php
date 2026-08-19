@@ -10,6 +10,8 @@ gb_ep_assert( defined( 'WC_VERSION' ), 'WooCommerce missing.' );
 gb_ep_assert( function_exists( 'learn_press_get_user' ), 'LearnPress missing.' );
 gb_ep_assert( function_exists( 'gb_core_provider_profile' ), 'Core provider-profile API missing.' );
 gb_ep_assert( 'sandbox' === get_option( 'gb_ep_environment' ), 'Environment is not Sandbox.' );
+wp_set_current_user( 1 );
+gb_ep_assert( current_user_can( 'manage_options' ), 'Disposable administrator context missing.' );
 
 global $wpdb;
 $contracts = $wpdb->prefix . 'gb_ep_contracts';
