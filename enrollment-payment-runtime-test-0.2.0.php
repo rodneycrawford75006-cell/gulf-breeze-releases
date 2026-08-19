@@ -267,4 +267,4 @@ $plugin->validate_agreement( array(), $repurchase_errors );
 gb_ep_020_assert( ! $repurchase_errors->get_error_message( 'gb_ep_duplicate' ), 'Refunded student could not repurchase with the same email.' );
 gb_ep_020_assert( $ucp_before === get_option( 'ucp_options' ), 'Under Construction configuration changed.' );
 
-echo "PASS Enrollment & Payment 0.2.0-dev-r2 runtime regression\n";
+echo "PASS Enrollment & Payment 0.2.0-dev-r3 runtime regression\n";

@@ -11,8 +11,8 @@ const css = fs.readFileSync(path.join(root, 'assets/checkout.css'), 'utf8');
 const all = [php, readme, js, css].join('\n');
 
 const required = [
-  'Version: 0.2.0-dev-r2',
-  "const VERSION = '0.2.0-dev-r2'",
+  'Version: 0.2.0-dev-r3',
+  "const VERSION = '0.2.0-dev-r3'",
   'woocommerce_checkout_before_customer_details',
   'take_checkout_control',
   'block_checkout_stage',
@@ -66,6 +66,8 @@ const required = [
   'Signed agreement copy',
   'Purchaser email:',
   'Student email:',
+  'checkoutUpdateTimer',
+  "trigger('update_checkout')",
 ];
 
 for (const needle of required) {
@@ -122,4 +124,8 @@ if (/update_meta_data\s*\([^\n]*(?:password|reset_key)/i.test(php)) {
   throw new Error('Password or reset key appears to be stored in order metadata.');
 }
 
-console.log('PASS Enrollment & Payment 0.2.0-dev-r2 static architecture controls');
+if (js.includes('dispatchEvent(new Event')) {
+  throw new Error('Purchaser-is-student copy still dispatches one WooCommerce change event per field.');
+}
+
+console.log('PASS Enrollment & Payment 0.2.0-dev-r3 static architecture controls');
