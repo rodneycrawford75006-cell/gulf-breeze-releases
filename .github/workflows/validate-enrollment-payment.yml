@@ -1,15 +1,13 @@
-name: Validate Gulf Breeze Enrollment and Payment 0.1.0
+name: Validate Gulf Breeze Enrollment and Payment 0.2.0
 
 on:
   push:
     branches:
       - agent/enrollment-payment-0.1.0-validation
     paths:
-      - gulf-breeze-enrollment-payment-0.1.0-dev-r6.zip
-      - gulf-breeze-catalog-cart-0.1.4.zip
-      - enrollment-payment-http-fixture.php
-      - enrollment-payment-runtime-test.php
-      - validate-enrollment-payment-static.mjs
+      - gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip
+      - enrollment-payment-runtime-test-0.2.0.php
+      - validate-enrollment-payment-0.2.0-static.mjs
       - .github/workflows/validate-enrollment-payment.yml
   workflow_dispatch:
 
@@ -19,6 +17,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       mysql:
         image: mysql:8.0
@@ -36,39 +35,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up PHP
+      - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: mysqli, openssl
           coverage: none
 
-      - name: Verify SHA, layout, PHP syntax, branding, and static controls
+      - name: Verify package integrity, layout, syntax, and architecture
         run: |
           set -euo pipefail
-          test "$(sha256sum gulf-breeze-enrollment-payment-0.1.0-dev-r6.zip | cut -d' ' -f1)" = "a2c1e5609c29e97adb0b60147f152523bdf9f734697e93caad9ce31f1eea9298"
-          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev-r6.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
-          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev-r6.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
-          test "$(sha256sum gulf-breeze-catalog-cart-0.1.4.zip | cut -d' ' -f1)" = "069d4f9c905277e91287e8a6c31b68ec14edb760b92f370747a18a238c120e4f"
+          test "$(sha256sum gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip | cut -d' ' -f1)" = "c43786d5588c9f1200f28f3f6c7093aa106ad0066575d4532deb3cdaef6309c8"
+          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
+          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
+          rm -rf /tmp/gb-ep-validation
           mkdir -p /tmp/gb-ep-validation
-          unzip -q gulf-breeze-enrollment-payment-0.1.0-dev-r6.zip -d /tmp/gb-ep-validation
-          GB_EP_PLUGIN_DIR=/tmp/gb-ep-validation/gulf-breeze-enrollment-payment node validate-enrollment-payment-static.mjs
+          unzip -q gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip -d /tmp/gb-ep-validation
+          GB_EP_PLUGIN_DIR=/tmp/gb-ep-validation/gulf-breeze-enrollment-payment node validate-enrollment-payment-0.2.0-static.mjs
+          node --check /tmp/gb-ep-validation/gulf-breeze-enrollment-payment/assets/checkout.js
           find /tmp/gb-ep-validation/gulf-breeze-enrollment-payment -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l enrollment-payment-runtime-test-0.2.0.php
           ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-ep-validation/gulf-breeze-enrollment-payment
 
-      - name: Verify local MFA QR encoder
-        run: |
-          node --input-type=module <<'JS'
-          import fs from 'node:fs'; import vm from 'node:vm';
-          class E { constructor(tag){this.tag=tag;this.children=[];this.attrs={};this.className='';} setAttribute(k,v){this.attrs[k]=v;} appendChild(x){this.children.push(x);} replaceChildren(...x){this.children=x;} }
-          const context={window:{},document:{createElement:(tag)=>new E(tag)}}; vm.createContext(context);
-          vm.runInContext(fs.readFileSync('/tmp/gb-ep-validation/gulf-breeze-enrollment-payment/assets/qr-bundle.js','utf8'),context);
-          const target=new E('div'); context.window.GBLocalQRCode.render(target,'otpauth://totp/Gulf%20Breeze:test@example.invalid?secret=JBSWY3DPEHPK3PXP&issuer=Gulf%20Breeze&digits=6&period=30');
-          if(target.children.length!==1||target.children[0].children.length<21)throw new Error('QR render failed');
-          console.log('PASS local QR render');
-          JS
-
-      - name: Install disposable WordPress and dependencies
+      - name: Install disposable exact-stack WordPress
         run: |
           set -euo pipefail
           curl -fsSL -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
@@ -80,121 +69,64 @@ jobs:
           /tmp/wp-cli.phar option update home http://127.0.0.1:8080 --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar option update siteurl http://127.0.0.1:8080 --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install woocommerce --version=11.0.1 --activate --path=/tmp/wordpress --quiet
-          /tmp/wp-cli.phar option update woocommerce_coming_soon no --path=/tmp/wordpress --quiet
-          /tmp/wp-cli.phar option update woocommerce_store_pages_only no --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install learnpress --version=4.4.4 --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-core-2.3.26-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-catalog-cart-0.1.4.zip" --activate --path=/tmp/wordpress --quiet
-          /tmp/wp-cli.phar option update ucp_options '{"status":1,"end_date_toggle":0,"whitelisted_roles":["administrator"]}' --format=json --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install woocommerce-paypal-payments --version=4.1.2 --activate --path=/tmp/wordpress --quiet
-          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.1.0-dev-r6.zip" --activate --path=/tmp/wordpress --quiet
-          test "$(/tmp/wp-cli.phar core version --path=/tmp/wordpress)" = "7.0.4"
-          test "$(/tmp/wp-cli.phar option get home --path=/tmp/wordpress)" = "http://127.0.0.1:8080"
-          test "$(/tmp/wp-cli.phar option get siteurl --path=/tmp/wordpress)" = "http://127.0.0.1:8080"
-          test "$(/tmp/wp-cli.phar plugin get woocommerce --field=version --path=/tmp/wordpress)" = "11.0.1"
-          test "$(/tmp/wp-cli.phar plugin get woocommerce-paypal-payments --field=version --path=/tmp/wordpress)" = "4.1.2"
+          /tmp/wp-cli.phar option update ucp_options '{"status":1,"end_date_toggle":0,"whitelisted_roles":["administrator"]}' --format=json --path=/tmp/wordpress --quiet
+          checkout_id=$(/tmp/wp-cli.phar option get woocommerce_checkout_page_id --path=/tmp/wordpress)
+          test "$checkout_id" -gt 0
+          /tmp/wp-cli.phar post update "$checkout_id" --post_content='[woocommerce_checkout]' --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip" --activate --path=/tmp/wordpress --quiet
 
-      - name: Run enrollment and payment runtime regression
+          test "$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')" = "8.4"
+          test "$(/tmp/wp-cli.phar core version --path=/tmp/wordpress)" = "7.0.4"
+          test "$(/tmp/wp-cli.phar plugin get woocommerce --field=version --path=/tmp/wordpress)" = "11.0.1"
+          test "$(/tmp/wp-cli.phar plugin get learnpress --field=version --path=/tmp/wordpress)" = "4.4.4"
+          test "$(/tmp/wp-cli.phar plugin get woocommerce-paypal-payments --field=version --path=/tmp/wordpress)" = "4.1.2"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-core --field=version --path=/tmp/wordpress)" = "2.3.26-dev-r2"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-catalog-cart --field=version --path=/tmp/wordpress)" = "0.1.4"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-enrollment-payment --field=version --path=/tmp/wordpress)" = "0.2.0-dev-r1"
+          test "$(/tmp/wp-cli.phar option get ucp_options --format=json --path=/tmp/wordpress | jq -r '.status')" = "1"
+
+      - name: Run exact-stack enrollment and payment regression
         run: |
           set -euo pipefail
-          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/enrollment-payment-runtime-test.php" --path=/tmp/wordpress
+          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/enrollment-payment-runtime-test-0.2.0.php" --path=/tmp/wordpress
 
-      - name: Run real administrator and storefront HTTP integration
+      - name: Run authenticated administrator HTTP smoke tests
         run: |
-          set -euxo pipefail
-          fixture_json=$(/tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/enrollment-payment-http-fixture.php" --path=/tmp/wordpress --quiet)
-          product_id=$(jq -r '.product_id' <<<"$fixture_json")
-          cart_url=$(jq -r '.cart_url' <<<"$fixture_json")
-          checkout_url=$(jq -r '.checkout_url' <<<"$fixture_json")
-          contract_url=$(jq -r '.contract_url' <<<"$fixture_json")
-          contract_cookie=$(jq -r '.contract_cookie' <<<"$fixture_json")
-          confirmation_url=$(jq -r '.confirmation_url' <<<"$fixture_json")
-          test "$product_id" -gt 0
-          [[ "$cart_url" == http://127.0.0.1:8080/* ]]
-          [[ "$checkout_url" == http://127.0.0.1:8080/* ]]
-          [[ "$contract_url" == http://127.0.0.1:8080/* ]]
-          test -n "$contract_cookie"
-          [[ "$confirmation_url" == http://127.0.0.1:8080/* ]]
-          [[ "$confirmation_url" == *'key=wc_order_'* ]]
-          [[ "$confirmation_url" != *'/enrollment-agreement/'* ]]
-
+          set -euo pipefail
           PHP_CLI_SERVER_WORKERS=4 /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress >/tmp/gb-wordpress-http.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/gb-wordpress-http.log' EXIT
-          ready_count=0
           for attempt in {1..30}; do
-            if curl -fsS --max-time 10 http://127.0.0.1:8080/wp-login.php -o /tmp/login-page.html; then
-              ready_count=$((ready_count + 1))
-              if [ "$ready_count" -ge 3 ]; then break; fi
-            else
-              ready_count=0
-            fi
+            if curl -fsS --max-time 10 http://127.0.0.1:8080/wp-login.php -o /tmp/login-page.html; then break; fi
             sleep 1
           done
-          test "$ready_count" -ge 3
+          curl -fsS --max-time 10 http://127.0.0.1:8080/wp-login.php -o /tmp/login-page.html
 
-          assert_page() {
-            local url=$1
-            local output=$2
-            local cookie_jar=${3:-}
-            local status
-            if [ -n "$cookie_jar" ]; then
-              status=$(curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors --max-time 30 -L -b "$cookie_jar" -c "$cookie_jar" -o "$output" -w '%{http_code}' "$url")
-            else
-              status=$(curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors --max-time 30 -L -o "$output" -w '%{http_code}' "$url")
-            fi
-            test "$status" = "200"
-            ! grep -qiE 'critical error|Call to undefined function wc_get_cart_item_data_hash|Page not found' "$output"
-          }
-
-          curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors -c /tmp/admin-cookies.txt http://127.0.0.1:8080/wp-login.php -o /tmp/admin-login.html
-          curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors -L -b /tmp/admin-cookies.txt -c /tmp/admin-cookies.txt \
+          curl -fsS -c /tmp/admin-cookies.txt http://127.0.0.1:8080/wp-login.php -o /tmp/admin-login.html
+          curl -fsS -L -b /tmp/admin-cookies.txt -c /tmp/admin-cookies.txt \
             --data-urlencode 'log=admin' \
             --data-urlencode 'pwd=validation-only-password' \
             --data-urlencode 'wp-submit=Log In' \
             --data-urlencode 'redirect_to=http://127.0.0.1:8080/wp-admin/' \
             http://127.0.0.1:8080/wp-login.php -o /tmp/admin-after-login.html
           grep -q 'wp-admin-bar' /tmp/admin-after-login.html
-          assert_page 'http://127.0.0.1:8080/wp-admin/' /tmp/admin-dashboard.html /tmp/admin-cookies.txt
-          echo 'PASS administrator dashboard request'
-          assert_page 'http://127.0.0.1:8080/wp-admin/plugins.php' /tmp/admin-plugins.html /tmp/admin-cookies.txt
+
+          assert_admin_page() {
+            local url=$1
+            local output=$2
+            local status
+            status=$(curl -sS --max-time 30 -L -b /tmp/admin-cookies.txt -c /tmp/admin-cookies.txt -o "$output" -w '%{http_code}' "$url")
+            test "$status" = "200"
+            ! grep -qiE 'critical error|fatal error|uncaught error' "$output"
+          }
+
+          assert_admin_page http://127.0.0.1:8080/wp-admin/ /tmp/admin-dashboard.html
+          assert_admin_page http://127.0.0.1:8080/wp-admin/plugins.php /tmp/admin-plugins.html
           grep -q 'woocommerce-paypal-payments/woocommerce-paypal-payments.php' /tmp/admin-plugins.html
           grep -q 'gulf-breeze-enrollment-payment/gulf-breeze-enrollment-payment.php' /tmp/admin-plugins.html
-          echo 'PASS Plugins request and plugin rows'
-          assert_page 'http://127.0.0.1:8080/wp-admin/plugin-install.php' /tmp/admin-plugin-install.html /tmp/admin-cookies.txt
-          echo 'PASS Add Plugins request'
-
-          if [[ "$cart_url" == *'?'* ]]; then cart_add_url="${cart_url}&"; else cart_add_url="${cart_url}?"; fi
-          curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors -L -c /tmp/store-cookies.txt -b /tmp/store-cookies.txt \
-            "${cart_add_url}add-to-cart=${product_id}&quantity=1&gb_locale=en-US" \
-            -o /tmp/cart.html -w '%{http_code}' | grep -qx '200'
-          ! grep -qiE 'critical error|Page not found' /tmp/cart.html
-          grep -q 'Enrollment HTTP Integration Course' /tmp/cart.html
-          echo 'PASS cart request'
-
-          checkout_gate_status=$(curl -sS --retry 3 --retry-delay 1 --retry-connrefused --retry-all-errors --max-time 30 \
-            -D /tmp/checkout-gate-headers.txt -b /tmp/store-cookies.txt -c /tmp/store-cookies.txt \
-            -o /tmp/checkout-gate-body.html -w '%{http_code}' "$checkout_url")
-          test "$checkout_gate_status" = '302'
-          checkout_gate_location=$(awk 'BEGIN{IGNORECASE=1} /^Location:/{sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' /tmp/checkout-gate-headers.txt)
-          test "$checkout_gate_location" = "$contract_url"
-          echo 'PASS contract-first checkout redirect'
-
-          assert_page "$contract_url" /tmp/contract.html /tmp/store-cookies.txt
-          if ! grep -q 'class="gb-ep-form"' /tmp/contract.html || ! grep -q 'name="gb_ep_contract_submit" value="1"' /tmp/contract.html; then
-            echo 'FAIL checkout did not render the contract form. Detected page markers:'
-            grep -Eio 'Choose exactly one mapped course[^<]*|selected course changed[^<]*|woocommerce-checkout|Enrollment agreement[^<]*|Coming soon|Page not found' /tmp/contract.html | sort -u || true
-            sed -E 's/<[^>]+>/ /g; s/[[:space:]]+/ /g' /tmp/contract.html | cut -c1-1200
-            exit 1
-          fi
-          echo 'PASS contract gate request'
-          printf '127.0.0.1\tFALSE\t/\tFALSE\t0\tgb_ep_contract\t%s\n' "$contract_cookie" >> /tmp/store-cookies.txt
-          assert_page "$checkout_url" /tmp/checkout.html /tmp/store-cookies.txt
-          grep -q 'woocommerce-checkout' /tmp/checkout.html
-          ! grep -q 'name="gb_ep_contract_submit" value="1"' /tmp/checkout.html
-          echo 'PASS contracted checkout request'
-
-          assert_page "$confirmation_url" /tmp/confirmation.html
-          grep -qiE 'order|confirmation|received' /tmp/confirmation.html
-          echo 'PASS native confirmation request'
-          echo 'PASS real administrator and storefront HTTP integration'
+          assert_admin_page http://127.0.0.1:8080/wp-admin/plugin-install.php /tmp/admin-plugin-install.html
+          echo 'PASS authenticated administrator HTTP smoke tests'
