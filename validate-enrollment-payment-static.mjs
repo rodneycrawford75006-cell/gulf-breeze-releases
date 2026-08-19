@@ -10,8 +10,8 @@ const qr = fs.readFileSync(path.join(root, 'assets/qr-bundle.js'), 'utf8');
 const all = [php, readme, js, qr].join('\n');
 
 const required = [
-  "Version: 0.1.0-dev-r3",
-  "const VERSION = '0.1.0-dev-r3'",
+  "Version: 0.1.0-dev-r4",
+  "const VERSION = '0.1.0-dev-r4'",
   "const CONTRACT_VERSION = 'DEV-0.1.0'",
   "gb_ep_contracts",
   "gb_ep_events",
@@ -22,6 +22,13 @@ const required = [
   "paypal_only",
 	"take_checkout_control",
   "block_store_api_checkout",
+  "CHECKOUT_MODE_OPTION",
+  "enforce_classic_checkout_page",
+  "[woocommerce_checkout]",
+  "remove_express_checkout_blocks",
+  "woocommerce/checkout-express-payment-block",
+  "woocommerce/cart-express-payment-block",
+  "classic-r4:",
   "CONTRACT_PAGE_OPTION",
   "provision_page",
   "enrollment-agreement",
@@ -77,5 +84,8 @@ if (/wp_mail\s*\([^,]+,[^,]+,\s*\$secret/.test(php)) throw new Error('Possible M
 if (!php.includes("unset($safe[$forbidden])")) throw new Error('Audit secret suppression is missing.');
 if (!php.includes("current_user_can('manage_woocommerce')")) throw new Error('Order Health capability gate is missing.');
 if (!php.includes("current_user_can( 'manage_options' )")) throw new Error('Administrator bypass/privacy boundary is missing.');
+if (!php.includes("has_block( 'woocommerce/checkout', $content )")) throw new Error('Checkout Block migration guard is missing.');
+if (!php.includes("'post_content' => '[woocommerce_checkout]'")) throw new Error('Classic checkout migration is missing.');
+if (!php.includes("add_filter( 'render_block', array( $this, 'remove_express_checkout_blocks' )")) throw new Error('Express checkout suppression is not registered.');
 
-console.log('PASS Enrollment & Payment 0.1.0 static controls');
+console.log('PASS Enrollment & Payment 0.1.0 revision 4 static controls');
