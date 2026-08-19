@@ -1,8 +1,0 @@
-{
-  "plugin": "gulf-breeze-core/gulf-breeze-core.php",
-  "version": "2.3.17",
-  "zip_url": "https://github.com/rodneycrawford75006-cell/gulf-breeze-releases/raw/refs/heads/main/gulf-breeze-core-2.3.17-r1.zip",
-  "sha256": "4436eecd90cead727d7488703af8f7ae67680ffa1a07246e0a623c27cc599e2f",
-  "released_at": "2026-08-17T17:57:17-05:00",
-  "notes": "Core 2.3.17 adds the bounded curriculum migration checkpoint 2.3.10 for the 18 audited overfilled Adult English lessons: 1–16, 18, and 38. Each proposed lesson remains within 120–150 readable words per assigned minute while preserving all timers, required objectives, course status, registry mapping, sign galleries, nine sections, the exact ordered 56-item curriculum, 46 lessons, 10 quizzes, and 330 instructional minutes. The migration preflights all lesson bodies, rolls back on a write or preservation failure, and is idempotent. The stable package differs from the fully validated checkpoint only in version identifiers, the production audit label, and release wording. Under Construction, publication, enrollment, and controlled tester access are unchanged."
-}
