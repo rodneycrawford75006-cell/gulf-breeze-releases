@@ -53,6 +53,13 @@ WC()->cart->empty_cart();
 gb_ep_assert( WC()->cart->add_to_cart( $product_id, 1 ), 'Could not prepare disposable mapped cart.' );
 $raw_checkout_url = wc_get_page_permalink( 'checkout' );
 gb_ep_assert( get_permalink( $contract_page_id ) === $enrollment_plugin->contract_first_checkout_url( $raw_checkout_url ), 'Unsigned checkout did not route to Enrollment Agreement.' );
+$GLOBALS['post'] = get_post( $contract_page_id );
+setup_postdata( $GLOBALS['post'] );
+$contract_markup = $enrollment_plugin->contract_shortcode();
+wp_reset_postdata();
+gb_ep_assert( false !== strpos( $contract_markup, 'name="gb_ep_contract_submit" value="1"' ), 'Contract form does not use the frontend submission boundary.' );
+gb_ep_assert( false === strpos( $contract_markup, 'admin-post.php' ), 'Contract form still posts through the unreliable admin boundary.' );
+gb_ep_assert( false !== strpos( $contract_markup, 'action="' . esc_url( get_permalink( $contract_page_id ) ) . '"' ), 'Contract form action is not the provisioned agreement page.' );
 WC()->cart->empty_cart();
 
 $profile = gb_core_provider_profile();

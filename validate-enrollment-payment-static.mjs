@@ -10,8 +10,8 @@ const qr = fs.readFileSync(path.join(root, 'assets/qr-bundle.js'), 'utf8');
 const all = [php, readme, js, qr].join('\n');
 
 const required = [
-  "Version: 0.1.0-dev-r2",
-  "const VERSION = '0.1.0-dev-r2'",
+  "Version: 0.1.0-dev-r3",
+  "const VERSION = '0.1.0-dev-r3'",
   "const CONTRACT_VERSION = 'DEV-0.1.0'",
   "gb_ep_contracts",
   "gb_ep_events",
@@ -30,6 +30,9 @@ const required = [
   "woocommerce_get_checkout_url",
   "contract_first_checkout_url",
   "redirect_unsigned_checkout",
+  "ensure_woocommerce_cart",
+  "handle_frontend_contract_submission",
+  "gb_ep_contract_submit",
   "ppcp-gateway",
 	"ppcp-credit-card-gateway",
 	"woocommerce_paypal_payments_pay_later_enabled",

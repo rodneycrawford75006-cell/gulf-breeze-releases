@@ -5,7 +5,7 @@ on:
     branches:
       - agent/enrollment-payment-0.1.0-validation
     paths:
-      - gulf-breeze-enrollment-payment-0.1.0-dev-r2.zip
+      - gulf-breeze-enrollment-payment-0.1.0-dev-r3.zip
       - gulf-breeze-catalog-cart-0.1.4.zip
       - enrollment-payment-runtime-test.php
       - validate-enrollment-payment-static.mjs
@@ -45,12 +45,12 @@ jobs:
       - name: Verify SHA, layout, PHP syntax, branding, and static controls
         run: |
           set -euo pipefail
-          test "$(sha256sum gulf-breeze-enrollment-payment-0.1.0-dev-r2.zip | cut -d' ' -f1)" = "ecf7e533794aa2134a6d77cf55e172118eea81f80743bfcb3a5f3e5cb209997b"
-          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev-r2.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
-          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev-r2.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
+          test "$(sha256sum gulf-breeze-enrollment-payment-0.1.0-dev-r3.zip | cut -d' ' -f1)" = "d84df0f11945cb767b7bc2787046fb6de5432aeb9be2ebb6a71956cdee717e96"
+          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev-r3.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
+          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev-r3.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
           test "$(sha256sum gulf-breeze-catalog-cart-0.1.4.zip | cut -d' ' -f1)" = "069d4f9c905277e91287e8a6c31b68ec14edb760b92f370747a18a238c120e4f"
           mkdir -p /tmp/gb-ep-validation
-          unzip -q gulf-breeze-enrollment-payment-0.1.0-dev-r2.zip -d /tmp/gb-ep-validation
+          unzip -q gulf-breeze-enrollment-payment-0.1.0-dev-r3.zip -d /tmp/gb-ep-validation
           GB_EP_PLUGIN_DIR=/tmp/gb-ep-validation/gulf-breeze-enrollment-payment node validate-enrollment-payment-static.mjs
           find /tmp/gb-ep-validation/gulf-breeze-enrollment-payment -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-ep-validation/gulf-breeze-enrollment-payment
@@ -81,7 +81,7 @@ jobs:
           /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-core-2.3.26-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-catalog-cart-0.1.4.zip" --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar option update ucp_options '{"status":1,"end_date_toggle":0,"whitelisted_roles":["administrator"]}' --format=json --path=/tmp/wordpress --quiet
-          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.1.0-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.1.0-dev-r3.zip" --activate --path=/tmp/wordpress --quiet
 
       - name: Run enrollment and payment runtime regression
         run: |
