@@ -45,7 +45,7 @@ jobs:
       - name: Verify SHA, layout, PHP syntax, branding, and static controls
         run: |
           set -euo pipefail
-          test "$(sha256sum gulf-breeze-enrollment-payment-0.1.0-dev-r1.zip | cut -d' ' -f1)" = "47c6ebe631a53981c2bba3d26cc8a157aec975bf6a69708a584686927a3ec449"
+          test "$(sha256sum gulf-breeze-enrollment-payment-0.1.0-dev-r1.zip | cut -d' ' -f1)" = "17f724e9c02b94efbd2f9ad2bdbec68d0e778e611948379ca92b8c2af9aa6107"
           test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev-r1.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
           test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.1.0-dev-r1.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
           test "$(sha256sum gulf-breeze-catalog-cart-0.1.4.zip | cut -d' ' -f1)" = "069d4f9c905277e91287e8a6c31b68ec14edb760b92f370747a18a238c120e4f"
