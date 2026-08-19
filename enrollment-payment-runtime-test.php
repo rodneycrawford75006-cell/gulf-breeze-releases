@@ -67,8 +67,7 @@ $order->save();
 $wpdb->update( $contracts, array( 'order_id' => $order->get_id() ), array( 'id' => $contract_id ) );
 
 Gulf_Breeze_Enrollment_Payment::instance()->process_verified_payment( $order->get_id() );
-$order->read( true );
-$order = wc_get_order( $order->get_id() );
+$order = new WC_Order( $order->get_id() );
 gb_ep_assert( 'payment_verification_failed' === $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_STATE ), 'Unpaid order did not fail closed.' );
 gb_ep_assert( ! get_user_by( 'email', $student_email ), 'Unpaid order created a student account.' );
 
@@ -76,8 +75,7 @@ $order->set_date_paid( time() );
 $order->set_status( 'processing' );
 $order->save();
 Gulf_Breeze_Enrollment_Payment::instance()->process_verified_payment( $order->get_id() );
-$order->read( true );
-$order = wc_get_order( $order->get_id() );
+$order = new WC_Order( $order->get_id() );
 gb_ep_assert( 'yes' === $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_PROCESSED ), 'Verified payment was not processed.' );
 gb_ep_assert( 'paid_enrolled_mfa_required' === $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_STATE ), 'Paid enrollment state incorrect.' );
 $user = get_user_by( 'email', $student_email );
@@ -117,7 +115,7 @@ $json2 = wp_json_encode( $snapshot, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNIC
 $wpdb->insert( $contracts, array( 'token_hash' => hash( 'sha256', 'runtime-token-2' ), 'status' => 'order_created_unpaid', 'locale' => 'en-US', 'product_id' => $product_id, 'course_id' => $course_id, 'order_id' => 0, 'student_email_hash' => hash( 'sha256', $student_email ), 'snapshot' => $json2, 'snapshot_hash' => $hash2, 'signed_at_utc' => gmdate( 'Y-m-d H:i:s' ), 'created_at_utc' => gmdate( 'Y-m-d H:i:s' ) ) );
 $contract2 = (int) $wpdb->insert_id;
 $order2 = wc_create_order(); $order2->add_product( $product, 1 ); $order2->calculate_totals(); $order2->set_payment_method( 'ppcp-gateway' ); $order2->set_transaction_id( 'SANDBOX-CAPTURE-RUNTIME-002' ); $order2->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_CONTRACT_ID, $contract2 ); $order2->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_COURSE_ID, $course_id ); $order2->update_meta_data( '_gb_ep_snapshot_hash', $hash2 ); $order2->set_date_paid( time() ); $order2->set_status( 'processing' ); $order2->save(); $wpdb->update( $contracts, array( 'order_id' => $order2->get_id() ), array( 'id' => $contract2 ) );
-Gulf_Breeze_Enrollment_Payment::instance()->process_verified_payment( $order2->get_id() ); $order2->read( true ); $order2 = wc_get_order( $order2->get_id() );
+Gulf_Breeze_Enrollment_Payment::instance()->process_verified_payment( $order2->get_id() ); $order2 = new WC_Order( $order2->get_id() );
 gb_ep_assert( $user_id === (int) $order2->get_meta( Gulf_Breeze_Enrollment_Payment::META_STUDENT_USER_ID ), 'Repurchase created or linked the wrong account.' );
 gb_ep_assert( 'active' === get_user_meta( $user_id, '_gb_ep_account_state', true ), 'Repurchase did not reactivate account.' );
 gb_ep_assert( ! in_array( $course_id, array_map( 'intval', (array) get_user_meta( $user_id, Gulf_Breeze_Enrollment_Payment::USER_REVOKED_COURSES, true ) ), true ), 'Repurchase did not clear course revocation.' );
