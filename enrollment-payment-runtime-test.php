@@ -14,6 +14,17 @@ wp_set_current_user( 1 );
 gb_ep_assert( current_user_can( 'manage_options' ), 'Disposable administrator context missing.' );
 add_filter( 'pre_wp_mail', '__return_true' );
 $enrollment_plugin = Gulf_Breeze_Enrollment_Payment::instance();
+$contract_page_id = (int) get_option( Gulf_Breeze_Enrollment_Payment::CONTRACT_PAGE_OPTION );
+$mfa_page_id = (int) get_option( Gulf_Breeze_Enrollment_Payment::MFA_PAGE_OPTION );
+gb_ep_assert( $contract_page_id > 0 && 'publish' === get_post_status( $contract_page_id ), 'Enrollment Agreement page was not provisioned.' );
+gb_ep_assert( has_shortcode( (string) get_post_field( 'post_content', $contract_page_id ), 'gb_enrollment_contract' ), 'Enrollment Agreement shortcode missing.' );
+gb_ep_assert( 'enrollment-agreement' === get_post_field( 'post_name', $contract_page_id ), 'Enrollment Agreement slug incorrect.' );
+gb_ep_assert( $mfa_page_id > 0 && 'publish' === get_post_status( $mfa_page_id ), 'MFA page was not provisioned.' );
+gb_ep_assert( has_shortcode( (string) get_post_field( 'post_content', $mfa_page_id ), 'gb_mfa_setup' ), 'MFA shortcode missing.' );
+gb_ep_assert( 'mfa-setup' === get_post_field( 'post_name', $mfa_page_id ), 'MFA page slug incorrect.' );
+Gulf_Breeze_Enrollment_Payment::activate();
+gb_ep_assert( $contract_page_id === (int) get_option( Gulf_Breeze_Enrollment_Payment::CONTRACT_PAGE_OPTION ), 'Repeated activation duplicated the Enrollment Agreement page.' );
+gb_ep_assert( $mfa_page_id === (int) get_option( Gulf_Breeze_Enrollment_Payment::MFA_PAGE_OPTION ), 'Repeated activation duplicated the MFA page.' );
 
 global $wpdb;
 $contracts = $wpdb->prefix . 'gb_ep_contracts';
@@ -38,6 +49,11 @@ $product_id = $product->save();
 update_post_meta( $product_id, '_gb_catalog_key', 'adult_6h_en' );
 update_post_meta( $product_id, '_gb_enrollment_locale', 'en-US' );
 update_post_meta( $product_id, '_gb_learnpress_course_id', $course_id );
+WC()->cart->empty_cart();
+gb_ep_assert( WC()->cart->add_to_cart( $product_id, 1 ), 'Could not prepare disposable mapped cart.' );
+$raw_checkout_url = wc_get_page_permalink( 'checkout' );
+gb_ep_assert( get_permalink( $contract_page_id ) === $enrollment_plugin->contract_first_checkout_url( $raw_checkout_url ), 'Unsigned checkout did not route to Enrollment Agreement.' );
+WC()->cart->empty_cart();
 
 $profile = gb_core_provider_profile();
 $student_email = 'enrollment-runtime@example.invalid';
@@ -53,8 +69,14 @@ $snapshot = array(
 );
 $json = wp_json_encode( $snapshot, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 $hash = hash( 'sha256', $json );
-$wpdb->insert( $contracts, array( 'token_hash' => hash( 'sha256', 'runtime-token-1' ), 'status' => 'order_created_unpaid', 'locale' => 'en-US', 'product_id' => $product_id, 'course_id' => $course_id, 'order_id' => 0, 'student_email_hash' => hash( 'sha256', $student_email ), 'snapshot' => $json, 'snapshot_hash' => $hash, 'signed_at_utc' => gmdate( 'Y-m-d H:i:s' ), 'created_at_utc' => gmdate( 'Y-m-d H:i:s' ) ) );
+$runtime_token = str_repeat( 'a', 64 );
+$wpdb->insert( $contracts, array( 'token_hash' => hash( 'sha256', $runtime_token ), 'status' => 'signed_unpaid', 'locale' => 'en-US', 'product_id' => $product_id, 'course_id' => $course_id, 'order_id' => 0, 'student_email_hash' => hash( 'sha256', $student_email ), 'snapshot' => $json, 'snapshot_hash' => $hash, 'signed_at_utc' => gmdate( 'Y-m-d H:i:s' ), 'created_at_utc' => gmdate( 'Y-m-d H:i:s' ) ) );
 $contract_id = (int) $wpdb->insert_id;
+WC()->cart->add_to_cart( $product_id, 1 );
+$_COOKIE[ Gulf_Breeze_Enrollment_Payment::COOKIE ] = $contract_id . '.' . $runtime_token;
+gb_ep_assert( $raw_checkout_url === $enrollment_plugin->contract_first_checkout_url( $raw_checkout_url ), 'Signed agreement did not release checkout.' );
+unset( $_COOKIE[ Gulf_Breeze_Enrollment_Payment::COOKIE ] );
+WC()->cart->empty_cart();
 
 $order = wc_create_order();
 $order->add_product( $product, 1 );
