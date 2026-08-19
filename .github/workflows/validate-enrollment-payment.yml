@@ -45,7 +45,7 @@ jobs:
       - name: Verify package integrity, layout, syntax, and architecture
         run: |
           set -euo pipefail
-          test "$(sha256sum gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip | cut -d' ' -f1)" = "c43786d5588c9f1200f28f3f6c7093aa106ad0066575d4532deb3cdaef6309c8"
+          test "$(sha256sum gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip | cut -d' ' -f1)" = "eee12f91b5ec8c021e8895f9b8a9b72f41d1ad4a1b9eec547ea2a9c246b471d3"
           test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
           test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r1.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
           rm -rf /tmp/gb-ep-validation
