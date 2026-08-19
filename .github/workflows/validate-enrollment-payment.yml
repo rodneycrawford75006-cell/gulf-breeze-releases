@@ -84,7 +84,7 @@ jobs:
           test "$(/tmp/wp-cli.phar plugin get woocommerce --field=version --path=/tmp/wordpress)" = "11.0.1"
           test "$(/tmp/wp-cli.phar plugin get learnpress --field=version --path=/tmp/wordpress)" = "4.4.4"
           test "$(/tmp/wp-cli.phar plugin get woocommerce-paypal-payments --field=version --path=/tmp/wordpress)" = "4.1.2"
-          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-core --field=version --path=/tmp/wordpress)" = "2.3.26-dev-r2"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-core --field=version --path=/tmp/wordpress)" = "2.3.26-dev"
           test "$(/tmp/wp-cli.phar plugin get gulf-breeze-catalog-cart --field=version --path=/tmp/wordpress)" = "0.1.4"
           test "$(/tmp/wp-cli.phar plugin get gulf-breeze-enrollment-payment --field=version --path=/tmp/wordpress)" = "0.2.0-dev-r1"
           test "$(/tmp/wp-cli.phar option get ucp_options --format=json --path=/tmp/wordpress | jq -r '.status')" = "1"
