@@ -75,6 +75,8 @@ echo wp_json_encode(
 	array(
 		'product_id'       => $product_id,
 		'product_name'     => $product->get_name(),
+		'cart_url'         => wc_get_cart_url(),
+		'checkout_url'     => wc_get_checkout_url(),
 		'contract_cookie'  => $contract_id . '.' . $token,
 		'confirmation_url' => $order->get_checkout_order_received_url(),
 	),
