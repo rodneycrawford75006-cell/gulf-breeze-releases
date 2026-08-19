@@ -80,6 +80,8 @@ jobs:
           /tmp/wp-cli.phar option update home http://127.0.0.1:8080 --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar option update siteurl http://127.0.0.1:8080 --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install woocommerce --version=11.0.1 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update woocommerce_coming_soon no --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update woocommerce_store_pages_only no --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install learnpress --version=4.4.4 --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-core-2.3.26-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-catalog-cart-0.1.4.zip" --activate --path=/tmp/wordpress --quiet
