@@ -10,8 +10,8 @@ const qr = fs.readFileSync(path.join(root, 'assets/qr-bundle.js'), 'utf8');
 const all = [php, readme, js, qr].join('\n');
 
 const required = [
-  "Version: 0.1.0-dev-r5",
-  "const VERSION = '0.1.0-dev-r5'",
+  "Version: 0.1.0-dev-r6",
+  "const VERSION = '0.1.0-dev-r6'",
   "const CONTRACT_VERSION = 'DEV-0.1.0'",
   "gb_ep_contracts",
   "gb_ep_events",
@@ -28,7 +28,7 @@ const required = [
   "remove_express_checkout_blocks",
   "woocommerce/checkout-express-payment-block",
   "woocommerce/cart-express-payment-block",
-  "classic-r5:",
+  "classic-r6:",
   "CONTRACT_PAGE_OPTION",
   "provision_page",
   "enrollment-agreement",
@@ -95,4 +95,17 @@ if (!php.includes("add_filter( 'render_block', array( $this, 'remove_express_che
 if (!php.includes("return array( 'checkout' );")) throw new Error('PayPal placement allowlist is missing.');
 if (php.includes("add_filter( 'woocommerce_get_checkout_url'")) throw new Error('Checkout URL filter would corrupt WooCommerce order-received URLs.');
 
-console.log('PASS Enrollment & Payment 0.1.0 revision 5 static controls');
+const contextStart = php.indexOf('private function enrollment_purchase_context()');
+const contextEnd = php.indexOf('public function limit_paypal_button_locations', contextStart);
+const contextBody = php.slice(contextStart, contextEnd);
+const adminGuard = contextBody.indexOf("is_admin() && ! wp_doing_ajax()");
+const functionGuard = contextBody.indexOf("function_exists( 'wc_get_cart_item_data_hash' )");
+const cartInspection = contextBody.indexOf('$this->current_cart_item()');
+if (contextStart < 0 || adminGuard < 0 || functionGuard < 0 || cartInspection < 0 || adminGuard > cartInspection || functionGuard > cartInspection) {
+  throw new Error('PayPal placement callback can inspect the cart before its administrator/function guards.');
+}
+if (!php.includes("! function_exists( 'wc_get_cart_item_data_hash' ) || ! class_exists( 'WC_Cart' )")) {
+  throw new Error('WooCommerce cart initialization fail-safe is missing.');
+}
+
+console.log('PASS Enrollment & Payment 0.1.0 revision 6 static controls');
