@@ -141,24 +141,31 @@ jobs:
             http://127.0.0.1:8080/wp-login.php -o /tmp/admin-after-login.html
           grep -q 'wp-admin-bar' /tmp/admin-after-login.html
           assert_page 'http://127.0.0.1:8080/wp-admin/' /tmp/admin-dashboard.html /tmp/admin-cookies.txt
+          echo 'PASS administrator dashboard request'
           assert_page 'http://127.0.0.1:8080/wp-admin/plugins.php' /tmp/admin-plugins.html /tmp/admin-cookies.txt
+          grep -q 'woocommerce-paypal-payments/woocommerce-paypal-payments.php' /tmp/admin-plugins.html
+          grep -q 'gulf-breeze-enrollment-payment/gulf-breeze-enrollment-payment.php' /tmp/admin-plugins.html
+          echo 'PASS Plugins request and plugin rows'
           assert_page 'http://127.0.0.1:8080/wp-admin/plugin-install.php' /tmp/admin-plugin-install.html /tmp/admin-cookies.txt
-          grep -q 'WooCommerce PayPal Payments' /tmp/admin-plugins.html
-          grep -qE 'Gulf Breeze Enrollment (&amp;|&) Payment' /tmp/admin-plugins.html
+          echo 'PASS Add Plugins request'
 
           curl -sS -L -c /tmp/store-cookies.txt -b /tmp/store-cookies.txt \
             "http://127.0.0.1:8080/cart/?add-to-cart=${product_id}&quantity=1&gb_locale=en-US" \
             -o /tmp/cart.html -w '%{http_code}' | grep -qx '200'
           ! grep -qiE 'critical error|Page not found' /tmp/cart.html
           grep -q 'Enrollment HTTP Integration Course' /tmp/cart.html
+          echo 'PASS cart request'
 
           assert_page 'http://127.0.0.1:8080/checkout/' /tmp/contract.html /tmp/store-cookies.txt
           grep -q 'name="gb_ep_contract_submit" value="1"' /tmp/contract.html
+          echo 'PASS contract gate request'
           printf '127.0.0.1\tFALSE\t/\tFALSE\t0\tgb_ep_contract\t%s\n' "$contract_cookie" >> /tmp/store-cookies.txt
           assert_page 'http://127.0.0.1:8080/checkout/' /tmp/checkout.html /tmp/store-cookies.txt
           grep -q 'woocommerce-checkout' /tmp/checkout.html
           ! grep -q 'name="gb_ep_contract_submit" value="1"' /tmp/checkout.html
+          echo 'PASS contracted checkout request'
 
           assert_page "$confirmation_url" /tmp/confirmation.html
           grep -qiE 'order|confirmation|received' /tmp/confirmation.html
+          echo 'PASS native confirmation request'
           echo 'PASS real administrator and storefront HTTP integration'
