@@ -10,8 +10,8 @@ const qr = fs.readFileSync(path.join(root, 'assets/qr-bundle.js'), 'utf8');
 const all = [php, readme, js, qr].join('\n');
 
 const required = [
-  "Version: 0.1.0-dev-r4",
-  "const VERSION = '0.1.0-dev-r4'",
+  "Version: 0.1.0-dev-r5",
+  "const VERSION = '0.1.0-dev-r5'",
   "const CONTRACT_VERSION = 'DEV-0.1.0'",
   "gb_ep_contracts",
   "gb_ep_events",
@@ -28,15 +28,20 @@ const required = [
   "remove_express_checkout_blocks",
   "woocommerce/checkout-express-payment-block",
   "woocommerce/cart-express-payment-block",
-  "classic-r4:",
+  "classic-r5:",
   "CONTRACT_PAGE_OPTION",
   "provision_page",
   "enrollment-agreement",
   "[gb_enrollment_contract]",
   "[gb_mfa_setup]",
-  "woocommerce_get_checkout_url",
-  "contract_first_checkout_url",
   "redirect_unsigned_checkout",
+  "woocommerce_add_to_cart",
+  "invalidate_contract_on_new_enrollment",
+  "abandoned_restarted",
+  "woocommerce_paypal_payments_selected_button_locations",
+  "limit_paypal_button_locations",
+  "duplicate_contract_blocked",
+  "gb_ep_duplicate_active_course",
   "ensure_woocommerce_cart",
   "handle_frontend_contract_submission",
   "gb_ep_contract_submit",
@@ -87,5 +92,7 @@ if (!php.includes("current_user_can( 'manage_options' )")) throw new Error('Admi
 if (!php.includes("has_block( 'woocommerce/checkout', $content )")) throw new Error('Checkout Block migration guard is missing.');
 if (!php.includes("'post_content' => '[woocommerce_checkout]'")) throw new Error('Classic checkout migration is missing.');
 if (!php.includes("add_filter( 'render_block', array( $this, 'remove_express_checkout_blocks' )")) throw new Error('Express checkout suppression is not registered.');
+if (!php.includes("return array( 'checkout' );")) throw new Error('PayPal placement allowlist is missing.');
+if (php.includes("add_filter( 'woocommerce_get_checkout_url'")) throw new Error('Checkout URL filter would corrupt WooCommerce order-received URLs.');
 
-console.log('PASS Enrollment & Payment 0.1.0 revision 4 static controls');
+console.log('PASS Enrollment & Payment 0.1.0 revision 5 static controls');

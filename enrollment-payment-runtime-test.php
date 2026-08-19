@@ -18,7 +18,7 @@ $checkout_page_id = (int) wc_get_page_id( 'checkout' );
 gb_ep_assert( $checkout_page_id > 0, 'WooCommerce Checkout page is missing.' );
 gb_ep_assert( has_shortcode( (string) get_post_field( 'post_content', $checkout_page_id ), 'woocommerce_checkout' ), 'Checkout Block was not migrated to classic checkout.' );
 gb_ep_assert( ! has_block( 'woocommerce/checkout', (string) get_post_field( 'post_content', $checkout_page_id ) ), 'Checkout Block remains active after migration.' );
-gb_ep_assert( 'classic-r4:' . $checkout_page_id === get_option( Gulf_Breeze_Enrollment_Payment::CHECKOUT_MODE_OPTION ), 'Classic checkout mode marker is missing.' );
+gb_ep_assert( 'classic-r5:' . $checkout_page_id === get_option( Gulf_Breeze_Enrollment_Payment::CHECKOUT_MODE_OPTION ), 'Classic checkout mode marker is missing.' );
 $checkout_content_before = (string) get_post_field( 'post_content', $checkout_page_id );
 gb_ep_assert( Gulf_Breeze_Enrollment_Payment::enforce_classic_checkout_page(), 'Classic checkout enforcement did not remain active.' );
 gb_ep_assert( $checkout_content_before === (string) get_post_field( 'post_content', $checkout_page_id ), 'Classic checkout enforcement was not idempotent.' );
@@ -68,8 +68,11 @@ $cart_express = $enrollment_plugin->remove_express_checkout_blocks( '<div>expres
 $ordinary_block = $enrollment_plugin->remove_express_checkout_blocks( '<div>billing</div>', array( 'blockName' => 'woocommerce/checkout-billing-address-block' ) );
 gb_ep_assert( '' === $checkout_express && '' === $cart_express, 'Express checkout block was not suppressed for enrollment.' );
 gb_ep_assert( '<div>billing</div>' === $ordinary_block, 'Non-express checkout content was changed.' );
+$paypal_locations = apply_filters( 'woocommerce_paypal_payments_selected_button_locations', array( 'product', 'cart', 'checkout', 'mini-cart', 'checkout-block-express', 'cart-block' ), 'locations' );
+gb_ep_assert( array( 'checkout' ) === $paypal_locations, 'PayPal smart buttons were not limited to Classic Checkout for enrollment.' );
 $raw_checkout_url = wc_get_page_permalink( 'checkout' );
-gb_ep_assert( get_permalink( $contract_page_id ) === $enrollment_plugin->contract_first_checkout_url( $raw_checkout_url ), 'Unsigned checkout did not route to Enrollment Agreement.' );
+gb_ep_assert( $raw_checkout_url === wc_get_checkout_url(), 'WooCommerce native checkout URL was changed.' );
+gb_ep_assert( false === has_filter( 'woocommerce_get_checkout_url', array( $enrollment_plugin, 'contract_first_checkout_url' ) ), 'Enrollment plugin still filters the checkout URL.' );
 $GLOBALS['post'] = get_post( $contract_page_id );
 setup_postdata( $GLOBALS['post'] );
 $contract_markup = $enrollment_plugin->contract_shortcode();
@@ -78,6 +81,8 @@ gb_ep_assert( false !== strpos( $contract_markup, 'name="gb_ep_contract_submit" 
 gb_ep_assert( false === strpos( $contract_markup, 'admin-post.php' ), 'Contract form still posts through the unreliable admin boundary.' );
 gb_ep_assert( false !== strpos( $contract_markup, 'action="' . esc_url( get_permalink( $contract_page_id ) ) . '"' ), 'Contract form action is not the provisioned agreement page.' );
 WC()->cart->empty_cart();
+$ordinary_locations = array( 'product', 'cart', 'checkout', 'mini-cart' );
+gb_ep_assert( $ordinary_locations === apply_filters( 'woocommerce_paypal_payments_selected_button_locations', $ordinary_locations, 'locations' ), 'PayPal locations changed outside an enrollment purchase.' );
 
 $profile = gb_core_provider_profile();
 $student_email = 'enrollment-runtime@example.invalid';
@@ -94,12 +99,18 @@ $snapshot = array(
 $json = wp_json_encode( $snapshot, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
 $hash = hash( 'sha256', $json );
 $runtime_token = str_repeat( 'a', 64 );
+$restart_token = str_repeat( 'b', 64 );
+$wpdb->insert( $contracts, array( 'token_hash' => hash( 'sha256', $restart_token ), 'status' => 'signed_unpaid', 'locale' => 'en-US', 'product_id' => $product_id, 'course_id' => $course_id, 'order_id' => 0, 'student_email_hash' => hash( 'sha256', $student_email ), 'snapshot' => $json, 'snapshot_hash' => $hash, 'signed_at_utc' => gmdate( 'Y-m-d H:i:s' ), 'created_at_utc' => gmdate( 'Y-m-d H:i:s' ) ) );
+$restart_contract_id = (int) $wpdb->insert_id;
+$_COOKIE[ Gulf_Breeze_Enrollment_Payment::COOKIE ] = $restart_contract_id . '.' . $restart_token;
+$enrollment_plugin->invalidate_contract_on_new_enrollment( 'runtime-cart-key', $product_id, 1, 0, array(), array() );
+gb_ep_assert( 'abandoned_restarted' === $wpdb->get_var( $wpdb->prepare( "SELECT status FROM {$contracts} WHERE id=%d", $restart_contract_id ) ), 'Starting a new enrollment did not invalidate the unused agreement.' );
+gb_ep_assert( ! isset( $_COOKIE[ Gulf_Breeze_Enrollment_Payment::COOKIE ] ), 'Restarted enrollment contract cookie was not cleared.' );
 $wpdb->insert( $contracts, array( 'token_hash' => hash( 'sha256', $runtime_token ), 'status' => 'signed_unpaid', 'locale' => 'en-US', 'product_id' => $product_id, 'course_id' => $course_id, 'order_id' => 0, 'student_email_hash' => hash( 'sha256', $student_email ), 'snapshot' => $json, 'snapshot_hash' => $hash, 'signed_at_utc' => gmdate( 'Y-m-d H:i:s' ), 'created_at_utc' => gmdate( 'Y-m-d H:i:s' ) ) );
 $contract_id = (int) $wpdb->insert_id;
 WC()->cart->add_to_cart( $product_id, 1 );
 $_COOKIE[ Gulf_Breeze_Enrollment_Payment::COOKIE ] = $contract_id . '.' . $runtime_token;
-gb_ep_assert( $raw_checkout_url === $enrollment_plugin->contract_first_checkout_url( $raw_checkout_url ), 'Signed agreement did not release checkout.' );
-unset( $_COOKIE[ Gulf_Breeze_Enrollment_Payment::COOKIE ] );
+gb_ep_assert( $raw_checkout_url === wc_get_checkout_url(), 'Signed agreement changed the native checkout URL.' );
 WC()->cart->empty_cart();
 
 $order = wc_create_order();
@@ -135,6 +146,37 @@ $user_id = (int) $user->ID;
 gb_ep_assert( $user_id === (int) $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_STUDENT_USER_ID ), 'Order/student link missing.' );
 gb_ep_assert( 'en-US' === get_user_meta( $user_id, 'gb_preferred_locale', true ), 'Locale did not persist.' );
 gb_ep_assert( 'active' === get_user_meta( $user_id, '_gb_ep_account_state', true ), 'Account was not activated.' );
+$received_url = $order->get_checkout_order_received_url();
+gb_ep_assert( false !== strpos( $received_url, 'order-received' ) && false !== strpos( $received_url, (string) $order->get_id() ), 'Native order-received URL is incomplete.' );
+gb_ep_assert( 0 === strpos( $received_url, $raw_checkout_url ) && false === strpos( $received_url, '/enrollment-agreement/' ), 'Order confirmation URL was rebased onto the Enrollment Agreement page.' );
+
+$duplicate_token = str_repeat( 'c', 64 );
+$wpdb->insert( $contracts, array( 'token_hash' => hash( 'sha256', $duplicate_token ), 'status' => 'signed_unpaid', 'locale' => 'en-US', 'product_id' => $product_id, 'course_id' => $course_id, 'order_id' => 0, 'student_email_hash' => hash( 'sha256', $student_email ), 'snapshot' => $json, 'snapshot_hash' => $hash, 'signed_at_utc' => gmdate( 'Y-m-d H:i:s' ), 'created_at_utc' => gmdate( 'Y-m-d H:i:s' ) ) );
+$duplicate_contract_id = (int) $wpdb->insert_id;
+WC()->cart->empty_cart();
+WC()->cart->add_to_cart( $product_id, 1 );
+$_COOKIE[ Gulf_Breeze_Enrollment_Payment::COOKIE ] = $duplicate_contract_id . '.' . $duplicate_token;
+$duplicate_errors = new WP_Error();
+$enrollment_plugin->validate_checkout( array(), $duplicate_errors );
+gb_ep_assert( $duplicate_errors->get_error_message( 'gb_ep_duplicate_active_course' ), 'Second payment for an active course was not blocked.' );
+unset( $_COOKIE[ Gulf_Breeze_Enrollment_Payment::COOKIE ] );
+WC()->cart->empty_cart();
+
+$claim_token = str_repeat( 'd', 64 );
+$wpdb->insert( $contracts, array( 'token_hash' => hash( 'sha256', $claim_token ), 'status' => 'signed_unpaid', 'locale' => 'en-US', 'product_id' => $product_id, 'course_id' => $course_id, 'order_id' => 0, 'student_email_hash' => hash( 'sha256', 'claim-runtime@example.invalid' ), 'snapshot' => $json, 'snapshot_hash' => $hash, 'signed_at_utc' => gmdate( 'Y-m-d H:i:s' ), 'created_at_utc' => gmdate( 'Y-m-d H:i:s' ) ) );
+$claim_contract_id = (int) $wpdb->insert_id;
+$claim_order = wc_create_order();
+$claim_order->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_CONTRACT_ID, $claim_contract_id );
+$claim_order->save();
+$enrollment_plugin->bind_contract_order( $claim_order );
+gb_ep_assert( (int) $claim_order->get_id() === (int) $wpdb->get_var( $wpdb->prepare( "SELECT order_id FROM {$contracts} WHERE id=%d", $claim_contract_id ) ), 'Agreement was not atomically claimed by its first order.' );
+$duplicate_claim_order = wc_create_order();
+$duplicate_claim_order->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_CONTRACT_ID, $claim_contract_id );
+$duplicate_claim_order->save();
+$duplicate_claim_blocked = false;
+try { $enrollment_plugin->bind_contract_order( $duplicate_claim_order ); } catch ( Exception $error ) { $duplicate_claim_blocked = true; }
+$duplicate_claim_order = wc_get_order( $duplicate_claim_order->get_id() );
+gb_ep_assert( $duplicate_claim_blocked && 'duplicate_contract_blocked' === $duplicate_claim_order->get_meta( Gulf_Breeze_Enrollment_Payment::META_STATE ), 'A second order reused the same agreement claim.' );
 
 $success_before = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$events} WHERE order_id=%d AND event_type='payment_and_enrollment' AND result='success'", $order->get_id() ) );
 Gulf_Breeze_Enrollment_Payment::instance()->process_verified_payment( $order->get_id() );
