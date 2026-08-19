@@ -171,7 +171,11 @@ jobs:
           echo 'PASS cart request'
 
           assert_page "$checkout_url" /tmp/contract.html /tmp/store-cookies.txt
-          grep -q 'name="gb_ep_contract_submit" value="1"' /tmp/contract.html
+          if ! grep -q 'class="gb-ep-form"' /tmp/contract.html || ! grep -q 'name="gb_ep_contract_submit" value="1"' /tmp/contract.html; then
+            echo 'FAIL checkout did not render the contract form. Detected page markers:'
+            grep -Eio 'Choose exactly one mapped course[^<]*|selected course changed[^<]*|woocommerce-checkout|Enrollment agreement[^<]*|Coming soon|Page not found' /tmp/contract.html | sort -u || true
+            exit 1
+          fi
           echo 'PASS contract gate request'
           printf '127.0.0.1\tFALSE\t/\tFALSE\t0\tgb_ep_contract\t%s\n' "$contract_cookie" >> /tmp/store-cookies.txt
           assert_page "$checkout_url" /tmp/checkout.html /tmp/store-cookies.txt
