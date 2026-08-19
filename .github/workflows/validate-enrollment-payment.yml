@@ -1,11 +1,11 @@
-name: Validate Gulf Breeze Enrollment and Payment 0.2.0-dev-r3
+name: Validate Gulf Breeze Enrollment and Payment 0.2.0-dev-r4
 
 on:
   push:
     branches:
-      - agent/enrollment-payment-0.2.0-dev-r3-validation
+      - agent/enrollment-payment-0.2.0-dev-r4-validation
     paths:
-      - gulf-breeze-enrollment-payment-0.2.0-dev-r3.zip
+      - gulf-breeze-enrollment-payment-0.2.0-dev-r4.zip
       - enrollment-payment-runtime-test-0.2.0.php
       - validate-enrollment-payment-0.2.0-static.mjs
       - validate-enrollment-payment-checkout-copy.cjs
@@ -46,12 +46,12 @@ jobs:
       - name: Verify package integrity, layout, syntax, and architecture
         run: |
           set -euo pipefail
-          test "$(sha256sum gulf-breeze-enrollment-payment-0.2.0-dev-r3.zip | cut -d' ' -f1)" = "24c68611e89f558a3e4db867cdf81ff4bab5fe374ed2137533a5ee07fcc2de4e"
-          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r3.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
-          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r3.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
+          test "$(sha256sum gulf-breeze-enrollment-payment-0.2.0-dev-r4.zip | cut -d' ' -f1)" = "e781af9883475277e3b15f530f9147189572a829a180dc0259c94f25e38f8eff"
+          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r4.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
+          test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r4.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
           rm -rf /tmp/gb-ep-validation
           mkdir -p /tmp/gb-ep-validation
-          unzip -q gulf-breeze-enrollment-payment-0.2.0-dev-r3.zip -d /tmp/gb-ep-validation
+          unzip -q gulf-breeze-enrollment-payment-0.2.0-dev-r4.zip -d /tmp/gb-ep-validation
           GB_EP_PLUGIN_DIR=/tmp/gb-ep-validation/gulf-breeze-enrollment-payment node validate-enrollment-payment-0.2.0-static.mjs
           GB_EP_PLUGIN_DIR=/tmp/gb-ep-validation/gulf-breeze-enrollment-payment node validate-enrollment-payment-checkout-copy.cjs
           node --check /tmp/gb-ep-validation/gulf-breeze-enrollment-payment/assets/checkout.js
@@ -79,7 +79,7 @@ jobs:
           checkout_id=$(/tmp/wp-cli.phar option get woocommerce_checkout_page_id --path=/tmp/wordpress)
           test "$checkout_id" -gt 0
           /tmp/wp-cli.phar post update "$checkout_id" --post_content='[woocommerce_checkout]' --path=/tmp/wordpress --quiet
-          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.2.0-dev-r3.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.2.0-dev-r4.zip" --activate --path=/tmp/wordpress --quiet
 
           test "$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')" = "8.4"
           test "$(/tmp/wp-cli.phar core version --path=/tmp/wordpress)" = "7.0.4"
@@ -88,7 +88,7 @@ jobs:
           test "$(/tmp/wp-cli.phar plugin get woocommerce-paypal-payments --field=version --path=/tmp/wordpress)" = "4.1.2"
           test "$(/tmp/wp-cli.phar plugin get gulf-breeze-core --field=version --path=/tmp/wordpress)" = "2.3.26-dev"
           test "$(/tmp/wp-cli.phar plugin get gulf-breeze-catalog-cart --field=version --path=/tmp/wordpress)" = "0.1.4"
-          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-enrollment-payment --field=version --path=/tmp/wordpress)" = "0.2.0-dev-r3"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-enrollment-payment --field=version --path=/tmp/wordpress)" = "0.2.0-dev-r4"
           test "$(/tmp/wp-cli.phar option get ucp_options --format=json --path=/tmp/wordpress | jq -r '.status')" = "1"
 
       - name: Run exact-stack enrollment and payment regression

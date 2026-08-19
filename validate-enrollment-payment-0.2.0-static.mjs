@@ -11,8 +11,8 @@ const css = fs.readFileSync(path.join(root, 'assets/checkout.css'), 'utf8');
 const all = [php, readme, js, css].join('\n');
 
 const required = [
-  'Version: 0.2.0-dev-r3',
-  "const VERSION = '0.2.0-dev-r3'",
+  'Version: 0.2.0-dev-r4',
+  "const VERSION = '0.2.0-dev-r4'",
   'woocommerce_checkout_before_customer_details',
   'take_checkout_control',
   'block_checkout_stage',
@@ -35,6 +35,15 @@ const required = [
   'woocommerce_thankyou',
   'handle_create_password_link',
   'send_student_onboarding',
+  'woocommerce_created_customer',
+  'woocommerce_email_additional_content_customer_new_account',
+  'capture_new_account_order',
+  'native_new_account_content',
+  '_gb_ep_initial_order_id',
+  'wc_create_new_customer( $email )',
+  'set your new password',
+  'no old password is required',
+  'native_new_account_email_requested',
   'get_password_reset_key',
   'Create my password',
   'You do not need an old password',
@@ -66,6 +75,7 @@ const required = [
   'Signed agreement copy',
   'Purchaser email:',
   'Student email:',
+  'Final payment and enrollment status is recorded on the WooCommerce order after PayPal confirms payment.',
   'checkoutUpdateTimer',
   "trigger('update_checkout')",
 ];
@@ -124,8 +134,26 @@ if (/update_meta_data\s*\([^\n]*(?:password|reset_key)/i.test(php)) {
   throw new Error('Password or reset key appears to be stored in order metadata.');
 }
 
+if (php.includes('wc_create_new_customer( $email,')) {
+  throw new Error('Plugin supplies a password and suppresses WooCommerce first-time password creation.');
+}
+
+const returningEmailStart = php.indexOf('private function send_student_onboarding');
+const returningEmailEnd = php.indexOf('private function enroll_course', returningEmailStart);
+const returningEmail = php.slice(returningEmailStart, returningEmailEnd);
+if (returningEmailStart < 0 || returningEmailEnd < 0 || returningEmail.includes('reset_password_url')) {
+  throw new Error('Returning-account notice replaces or resets an existing password.');
+}
+
+const adminEmailStart = php.indexOf('if ( $sent_to_admin )');
+const adminEmailEnd = php.indexOf("if ( ! in_array( $email->id", adminEmailStart);
+const adminEmail = php.slice(adminEmailStart, adminEmailEnd);
+if (adminEmailStart < 0 || adminEmailEnd < 0 || adminEmail.includes("echo 'Enrollment state: '") || adminEmail.includes("echo 'Student user ID: '")) {
+  throw new Error('Early administrator email exposes stale post-payment fields.');
+}
+
 if (js.includes('dispatchEvent(new Event')) {
   throw new Error('Purchaser-is-student copy still dispatches one WooCommerce change event per field.');
 }
 
-console.log('PASS Enrollment & Payment 0.2.0-dev-r3 static architecture controls');
+console.log('PASS Enrollment & Payment 0.2.0-dev-r4 static architecture controls');

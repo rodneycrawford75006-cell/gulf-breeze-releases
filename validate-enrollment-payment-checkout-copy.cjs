@@ -67,8 +67,8 @@ const window = {
 
 vm.runInNewContext(source, { window, document, Event });
 
-Object.assign(elements.gb_ep_student_name, { value: 'Gulf Breeze R3 Test Student' });
-Object.assign(elements.gb_ep_student_email, { value: 'r3-student@example.invalid' });
+Object.assign(elements.gb_ep_student_name, { value: 'Gulf Breeze R4 Test Student' });
+Object.assign(elements.gb_ep_student_email, { value: 'r4-student@example.invalid' });
 Object.assign(elements.gb_ep_student_phone, { value: '9725550199' });
 Object.assign(elements.gb_ep_student_address_1, { value: '100 Test Street' });
 Object.assign(elements.gb_ep_student_city, { value: 'Carrollton' });
@@ -78,8 +78,8 @@ elements.gb_ep_purchaser_is_student.checked = true;
 listeners.change({ target: elements.gb_ep_purchaser_is_student });
 
 if (elements.billing_first_name.value !== 'Gulf') throw new Error('First name was not copied.');
-if (elements.billing_last_name.value !== 'Breeze R3 Test Student') throw new Error('Last name was not copied.');
-if (elements.billing_email.value !== 'r3-student@example.invalid') throw new Error('Email was not copied.');
+if (elements.billing_last_name.value !== 'Breeze R4 Test Student') throw new Error('Last name was not copied.');
+if (elements.billing_email.value !== 'r4-student@example.invalid') throw new Error('Email was not copied.');
 if (elements.billing_phone.value !== '9725550199') throw new Error('Phone was not copied.');
 if (timers.size !== 1) throw new Error('Copy scheduled more than one checkout refresh.');
 
@@ -87,11 +87,11 @@ for (const callback of timers.values()) callback();
 timers.clear();
 if (checkoutUpdates !== 1) throw new Error('Initial copy did not produce exactly one checkout refresh.');
 
-for (const value of ['r', 'r3', 'r3-final@example.invalid']) {
+for (const value of ['r', 'r4', 'r4-final@example.invalid']) {
   elements.gb_ep_student_email.value = value;
   listeners.input({ target: elements.gb_ep_student_email });
 }
-if (elements.billing_email.value !== 'r3-final@example.invalid') throw new Error('Latest email was not preserved.');
+if (elements.billing_email.value !== 'r4-final@example.invalid') throw new Error('Latest email was not preserved.');
 if (timers.size !== 1) throw new Error('Rapid input was not debounced to one pending refresh.');
 for (const callback of timers.values()) callback();
 if (checkoutUpdates !== 2) throw new Error('Rapid input produced overlapping checkout refreshes.');

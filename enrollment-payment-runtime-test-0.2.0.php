@@ -27,6 +27,7 @@ $plugin = Gulf_Breeze_Enrollment_Payment::instance();
 $catalog = Gulf_Breeze_Catalog_Cart::instance();
 $ucp_before = get_option( 'ucp_options' );
 $mail_log = array();
+$password_generated_observed = null;
 add_filter(
 	'pre_wp_mail',
 	function ( $return, $atts ) use ( &$mail_log ) {
@@ -35,6 +36,14 @@ add_filter(
 	},
 	10,
 	2
+);
+add_action(
+	'woocommerce_created_customer',
+	function ( $customer_id, $new_customer_data, $password_generated ) use ( &$password_generated_observed ) {
+		$password_generated_observed = $password_generated;
+	},
+	0,
+	3
 );
 
 gb_ep_020_assert( false === has_action( 'template_redirect', array( $catalog, 'block_checkout_stage' ) ), 'Catalog checkout redirect lock remains active.' );
@@ -147,21 +156,25 @@ gb_ep_020_assert( $user_id === absint( $order->get_customer_id() ), 'Paid order 
 gb_ep_020_assert( $user_id === absint( $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_STUDENT_USER_ID ) ), 'Student link meta missing.' );
 gb_ep_020_assert( 'yes' === $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_ACCOUNT_CREATED ), 'New paid student was not recorded as an account created by this order.' );
 gb_ep_020_assert( 'yes' === $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_ONBOARDING_SENT ), 'Student onboarding email was not marked sent.' );
-gb_ep_020_assert( 'accepted_by_wordpress_mail' === $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_ONBOARDING_RESULT ), 'WordPress mail did not accept the student onboarding message.' );
+gb_ep_020_assert( 'native_new_account_email_requested' === $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_ONBOARDING_RESULT ), 'Native WooCommerce first-time account email was not recorded.' );
+gb_ep_020_assert( true === $password_generated_observed, 'WooCommerce was not allowed to generate the first-time student password.' );
+gb_ep_020_assert( $order->get_id() === absint( get_user_meta( $user_id, '_gb_ep_initial_order_id', true ) ), 'Native account email lost its durable order context.' );
 gb_ep_020_assert( 'en-US' === get_user_meta( $user_id, 'gb_preferred_locale', true ), 'Purchased language was not saved.' );
 gb_ep_020_assert( $order->get_id() === absint( get_user_meta( $user_id, '_gb_ep_active_course_' . $course_id, true ) ), 'Active paid course marker missing.' );
 $learnpress_item_class = '\\LearnPress\\Models\\UserItems\\UserCourseModel';
 $learnpress_item = $learnpress_item_class::find( $user_id, $course_id, false );
 gb_ep_020_assert( $learnpress_item && $learnpress_item->has_enrolled_or_finished(), 'Paid student does not have active LearnPress access.' );
 
-$onboarding_mail = gb_ep_020_find_mail( $mail_log, 'Create your password and access your Gulf Breeze course' );
-gb_ep_020_assert( $onboarding_mail, 'Focused student onboarding email was not generated.' );
-gb_ep_020_assert( $student_email === $onboarding_mail['to'], 'Onboarding email was not addressed to the student.' );
-gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'action=rp' ), 'Onboarding email lacks a standard WordPress reset-password action.' );
-gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'Create my password' ), 'Onboarding email lacks the password-creation action.' );
-gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'You do not need an old password' ), 'Onboarding email does not explain that no old password is required.' );
-gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'Signed agreement copy' ), 'Onboarding email lacks the signed agreement copy.' );
-gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], $snapshot_hash ), 'Onboarding email lacks the agreement hash.' );
+$onboarding_mail = gb_ep_020_find_mail( $mail_log, 'account has been created' );
+gb_ep_020_assert( $onboarding_mail, 'Native WooCommerce new-account email was not generated.' );
+gb_ep_020_assert( $student_email === $onboarding_mail['to'], 'Native account email was not addressed to the student.' );
+gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'action=newaccount' ), 'Native account email lacks WooCommerce first-time password creation.' );
+gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'set your new password' ), 'Native account email does not identify the first-time password link.' );
+gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'no old password is required' ), 'Native account email does not explain that no old password is required.' );
+gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'Native Checkout Runtime Course' ), 'Native account email lacks the purchased course.' );
+gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], 'Signed agreement copy' ), 'Native account email lacks the signed agreement copy.' );
+gb_ep_020_assert( false !== strpos( $onboarding_mail['message'], $snapshot_hash ), 'Native account email lacks the agreement hash.' );
+gb_ep_020_assert( ! gb_ep_020_find_mail( $mail_log, 'Create your password and access your Gulf Breeze course' ), 'A second password email was generated and could invalidate the native link.' );
 
 $mail_count_after_enrollment = count( $mail_log );
 $plugin->process_paid_order( $order->get_id() );
@@ -175,6 +188,9 @@ gb_ep_020_assert( false !== strpos( $admin_email_html, 'Native Checkout Student'
 gb_ep_020_assert( false !== strpos( $admin_email_html, $student_email ), 'Administrator email lacks the student email.' );
 gb_ep_020_assert( false !== strpos( $admin_email_html, 'Runtime Purchaser' ), 'Administrator email lacks the purchaser identity.' );
 gb_ep_020_assert( false !== strpos( $admin_email_html, 'runtime-purchaser@example.invalid' ), 'Administrator email lacks the purchaser email.' );
+gb_ep_020_assert( false !== strpos( $admin_email_html, 'Final payment and enrollment status is recorded on the WooCommerce order' ), 'Administrator email lacks the honest final-status direction.' );
+gb_ep_020_assert( false === strpos( $admin_email_html, 'Enrollment state:' ), 'Administrator new-order email exposes a stale enrollment state.' );
+gb_ep_020_assert( false === strpos( $admin_email_html, 'Student user ID:' ), 'Administrator new-order email exposes a blank or stale student user ID.' );
 
 $customer_email = (object) array( 'id' => 'customer_processing_order' );
 ob_start();
@@ -267,4 +283,4 @@ $plugin->validate_agreement( array(), $repurchase_errors );
 gb_ep_020_assert( ! $repurchase_errors->get_error_message( 'gb_ep_duplicate' ), 'Refunded student could not repurchase with the same email.' );
 gb_ep_020_assert( $ucp_before === get_option( 'ucp_options' ), 'Under Construction configuration changed.' );
 
-echo "PASS Enrollment & Payment 0.2.0-dev-r3 runtime regression\n";
+echo "PASS Enrollment & Payment 0.2.0-dev-r4 runtime regression\n";
