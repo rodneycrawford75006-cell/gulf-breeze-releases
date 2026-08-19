@@ -110,7 +110,7 @@ jobs:
           [[ "$confirmation_url" == *'key=wc_order_'* ]]
           [[ "$confirmation_url" != *'/enrollment-agreement/'* ]]
 
-          /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress >/tmp/gb-wordpress-http.log 2>&1 &
+          PHP_CLI_SERVER_WORKERS=4 /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress >/tmp/gb-wordpress-http.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true; cat /tmp/gb-wordpress-http.log' EXIT
           for attempt in {1..30}; do
@@ -124,9 +124,9 @@ jobs:
             local cookie_jar=${3:-}
             local status
             if [ -n "$cookie_jar" ]; then
-              status=$(curl -sS -L -b "$cookie_jar" -c "$cookie_jar" -o "$output" -w '%{http_code}' "$url")
+              status=$(curl -sS --max-time 30 -L -b "$cookie_jar" -c "$cookie_jar" -o "$output" -w '%{http_code}' "$url")
             else
-              status=$(curl -sS -L -o "$output" -w '%{http_code}' "$url")
+              status=$(curl -sS --max-time 30 -L -o "$output" -w '%{http_code}' "$url")
             fi
             test "$status" = "200"
             ! grep -qiE 'critical error|Call to undefined function wc_get_cart_item_data_hash|Page not found' "$output"
