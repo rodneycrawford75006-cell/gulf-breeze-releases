@@ -129,6 +129,9 @@ gb_ep_020_assert( $user_id === absint( $order->get_customer_id() ), 'Paid order 
 gb_ep_020_assert( $user_id === absint( $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_STUDENT_USER_ID ) ), 'Student link meta missing.' );
 gb_ep_020_assert( 'en-US' === get_user_meta( $user_id, 'gb_preferred_locale', true ), 'Purchased language was not saved.' );
 gb_ep_020_assert( $order->get_id() === absint( get_user_meta( $user_id, '_gb_ep_active_course_' . $course_id, true ) ), 'Active paid course marker missing.' );
+$learnpress_item_class = '\\LearnPress\\Models\\UserItems\\UserCourseModel';
+$learnpress_item = $learnpress_item_class::find( $user_id, $course_id, false );
+gb_ep_020_assert( $learnpress_item && $learnpress_item->has_enrolled_or_finished(), 'Paid student does not have active LearnPress access.' );
 
 $received_url = $order->get_checkout_order_received_url();
 gb_ep_020_assert( 0 === strpos( $received_url, $native_checkout_url ), 'Confirmation URL is not based on WooCommerce checkout.' );
@@ -155,6 +158,8 @@ $plugin->handle_refunded_status( $order->get_id() );
 $order = wc_get_order( $order->get_id() );
 gb_ep_020_assert( 'yes' === $order->get_meta( Gulf_Breeze_Enrollment_Payment::META_REVOKED ), 'Refund did not revoke course access.' );
 gb_ep_020_assert( ! get_user_meta( $user_id, '_gb_ep_active_course_' . $course_id, true ), 'Refund left the active course marker in place.' );
+$learnpress_item = $learnpress_item_class::find( $user_id, $course_id, false );
+gb_ep_020_assert( ! $learnpress_item || ! $learnpress_item->has_enrolled_or_finished(), 'Refund left LearnPress course access active.' );
 gb_ep_020_assert( get_user_by( 'id', $user_id ), 'Refund deleted the student account.' );
 
 $repurchase_errors = new WP_Error();
