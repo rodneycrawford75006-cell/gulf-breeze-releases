@@ -11,8 +11,8 @@ const css = fs.readFileSync(path.join(root, 'assets/checkout.css'), 'utf8');
 const all = [php, readme, js, css].join('\n');
 
 const required = [
-  'Version: 0.2.0-dev-r1',
-  "const VERSION = '0.2.0-dev-r1'",
+  'Version: 0.2.0-dev-r2',
+  "const VERSION = '0.2.0-dev-r2'",
   'woocommerce_checkout_before_customer_details',
   'take_checkout_control',
   'block_checkout_stage',
@@ -31,6 +31,16 @@ const required = [
   'woocommerce_order_status_refunded',
   'woocommerce_order_status_cancelled',
   'woocommerce_order_status_failed',
+  'woocommerce_email_after_order_table',
+  'woocommerce_thankyou',
+  'handle_create_password_link',
+  'send_student_onboarding',
+  'get_password_reset_key',
+  'Create my password',
+  'You do not need an old password',
+  '_gb_ep_student_onboarding_sent',
+  '_gb_ep_student_onboarding_result',
+  '_gb_ep_student_account_created',
   'gb_ep_agreement_nonce',
   '_gb_ep_contract_snapshot_json',
   '_gb_ep_contract_snapshot_hash',
@@ -51,6 +61,11 @@ const required = [
   'DEVELOPMENT / SAMPLE DATA',
   'nothing is entered twice',
   'no tendrá que ingresar nada dos veces',
+  'hash_hmac',
+  "wp_salt( 'auth' )",
+  'Signed agreement copy',
+  'Purchaser email:',
+  'Student email:',
 ];
 
 for (const needle of required) {
@@ -65,13 +80,15 @@ const forbidden = [
   'initialize_session',
   'initialize_cart',
   'setcookie(',
-  "add_action( 'template_redirect'",
   'admin_post_gb_ep_contract',
   'gb_enrollment_contract',
   'CONTRACT_PAGE_OPTION',
   'enrollment-agreement',
   'Drive Smart',
   'drivesmart',
+  'wp_set_auth_cookie',
+  'old_password',
+  'current_password',
 ];
 
 for (const needle of forbidden) {
@@ -92,4 +109,17 @@ if (cartStart < 0 || cartEnd < 0 || !cart.includes("is_admin() && ! wp_doing_aja
   throw new Error('Frontend cart guard is missing.');
 }
 
-console.log('PASS Enrollment & Payment 0.2.0-dev-r1 static architecture controls');
+const passwordHandlerStart = php.indexOf('public function handle_create_password_link()');
+const passwordHandlerEnd = php.indexOf('public function handle_refund', passwordHandlerStart);
+const passwordHandler = php.slice(passwordHandlerStart, passwordHandlerEnd);
+for (const needle of ['is_paid()', 'META_PROCESSED', 'hash_equals', 'purchaser_is_student', 'reset_password_url']) {
+  if (passwordHandlerStart < 0 || passwordHandlerEnd < 0 || !passwordHandler.includes(needle)) {
+    throw new Error(`Password-creation endpoint guard missing: ${needle}`);
+  }
+}
+
+if (/update_meta_data\s*\([^\n]*(?:password|reset_key)/i.test(php)) {
+  throw new Error('Password or reset key appears to be stored in order metadata.');
+}
+
+console.log('PASS Enrollment & Payment 0.2.0-dev-r2 static architecture controls');
