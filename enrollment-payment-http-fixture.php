@@ -77,6 +77,7 @@ echo wp_json_encode(
 		'product_name'     => $product->get_name(),
 		'cart_url'         => wc_get_cart_url(),
 		'checkout_url'     => wc_get_checkout_url(),
+		'contract_url'     => get_permalink( (int) get_option( Gulf_Breeze_Enrollment_Payment::CONTRACT_PAGE_OPTION ) ),
 		'contract_cookie'  => $contract_id . '.' . $token,
 		'confirmation_url' => $order->get_checkout_order_received_url(),
 	),
