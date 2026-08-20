@@ -79,6 +79,7 @@ function gb_cert_r2_fixture( $locale, $index ) {
 	$user_id = wp_create_user( 'gb-cert-' . $index, 'validation-password', 'gb-cert-' . $index . '@example.com' );
 	wp_update_user( array( 'ID' => $user_id, 'display_name' => 'Taylor Test' ) );
 	update_user_meta( $user_id, 'locale', $locale );
+	update_user_meta( $user_id, 'gb_preferred_locale', $locale );
 	$course_id = wp_insert_post( array(
 		'post_type' => 'lp_course',
 		'post_status' => 'publish',
@@ -156,6 +157,8 @@ add_filter( 'pre_wp_mail', function( $pre, $atts ) use ( &$mail ) {
 	);
 	return true;
 }, 10, 2 );
+gb_cert_r2_check( 'WordPress mail interception is active', true === wp_mail( 'mail-probe@example.com', 'Validation probe', 'Validation probe' ) && 1 === count( $mail ) );
+$mail = array();
 
 $certificates = Gulf_Breeze_Certificates::instance();
 gb_cert_r2_check( 'two mock serials imported', 2 === $certificates->import_mock_serials( 2 ) );
@@ -163,6 +166,7 @@ $english = gb_cert_r2_fixture( 'en-US', 1 );
 $spanish = gb_cert_r2_fixture( 'es-US', 2 );
 $english_row = $certificates->maybe_issue( $english[0], $english[1] );
 $spanish_row = $certificates->maybe_issue( $spanish[0], $spanish[1] );
+WP_CLI::log( 'INFO certificate email states: ' . ( $english_row['email_status'] ?? 'missing' ) . '/' . ( $spanish_row['email_status'] ?? 'missing' ) . '; recipients: ' . ( $english_row['email_recipient'] ?? 'missing' ) . '/' . ( $spanish_row['email_recipient'] ?? 'missing' ) );
 
 foreach ( array( 'English' => $english_row, 'Spanish' => $spanish_row ) as $label => $row ) {
 	gb_cert_r2_check( "$label issuance succeeds", is_array( $row ) && ! empty( $row['id'] ) );
