@@ -5,15 +5,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit( 1 );
 }
 
-$passed = 0;
-$failed = 0;
+$GLOBALS['gb_cert_r2_counts'] = array( 'passed' => 0, 'failed' => 0 );
 function gb_cert_r2_check( $name, $condition ) {
-	global $passed, $failed;
 	if ( $condition ) {
-		$passed++;
+		$GLOBALS['gb_cert_r2_counts']['passed']++;
 		WP_CLI::log( 'PASS ' . $name );
 	} else {
-		$failed++;
+		$GLOBALS['gb_cert_r2_counts']['failed']++;
 		WP_CLI::warning( 'FAIL ' . $name );
 	}
 }
@@ -76,9 +74,11 @@ function gb_cert_r2_add_lp_completion( $user_id, $course_id ) {
 }
 
 function gb_cert_r2_fixture( $locale, $index ) {
+	wp_set_current_user( 1 );
 	$course_key = 'es-US' === $locale ? 'adult_es' : 'adult_en';
-	$user_id = wp_create_user( 'gb-cert-' . $index, 'validation-password', 'gb-cert-' . $index . '@example.invalid' );
+	$user_id = wp_create_user( 'gb-cert-' . $index, 'validation-password', 'gb-cert-' . $index . '@example.com' );
 	wp_update_user( array( 'ID' => $user_id, 'display_name' => 'Taylor Test' ) );
+	update_user_meta( $user_id, 'locale', $locale );
 	$course_id = wp_insert_post( array(
 		'post_type' => 'lp_course',
 		'post_status' => 'publish',
@@ -93,7 +93,7 @@ function gb_cert_r2_fixture( $locale, $index ) {
 	$product_id = $product->save();
 	$order = wc_create_order( array( 'customer_id' => $user_id ) );
 	$order->add_product( wc_get_product( $product_id ), 1 );
-	$order->set_billing_email( 'gb-cert-' . $index . '@example.invalid' );
+	$order->set_billing_email( 'gb-cert-' . $index . '@example.com' );
 	$order->update_meta_data( '_gb_ep_state', 'paid_enrolled' );
 	$order->update_meta_data( '_gb_ep_student_user_id', $user_id );
 	$order->update_meta_data( '_gb_ep_course_id', $course_id );
@@ -211,6 +211,8 @@ $admin = ob_get_clean();
 gb_cert_r2_check( 'administrator page renders normally', false !== strpos( $admin, 'Gulf Breeze Certificates' ) && false !== strpos( $admin, 'TEST MODE' ) && false !== strpos( $admin, 'TDLR reporting identity' ) );
 gb_cert_r2_check( 'Under Construction configuration is unchanged', $under_construction_before === get_option( 'ucp_options' ) );
 
+$passed = $GLOBALS['gb_cert_r2_counts']['passed'];
+$failed = $GLOBALS['gb_cert_r2_counts']['failed'];
 WP_CLI::log( "RESULT {$passed} passed, {$failed} failed" );
 if ( $failed ) {
 	WP_CLI::error( 'Focused Certificates r2 exact-stack validation failed.' );
