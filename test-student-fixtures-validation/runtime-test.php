@@ -136,7 +136,9 @@ gb_fixture_r1_check( 'exactly two mock serials are allocated', $available_before
 $fixture_mail = array_values( array_filter( $mail, function( $message ) {
 	return isset( $message['to'] ) && false !== strpos( is_array( $message['to'] ) ? implode( ',', $message['to'] ) : $message['to'], '@test.invalid' );
 } ) );
-$mail_text = wp_json_encode( $fixture_mail );
+$mail_text = implode( "\n", array_map( function( $message ) {
+	return (string) ( $message['subject'] ?? '' ) . "\n" . (string) ( $message['message'] ?? '' );
+}, $fixture_mail ) );
 gb_fixture_r1_check( 'two localized certificate emails are attempted', 2 === count( $fixture_mail ) );
 gb_fixture_r1_check( 'English next-step instructions are present', false !== strpos( $mail_text, 'What to do next' ) );
 gb_fixture_r1_check( 'Spanish next-step instructions are present', false !== strpos( $mail_text, 'Qué hacer después' ) );
