@@ -23,6 +23,12 @@ gb_ep_020_assert( defined( 'WC_VERSION' ), 'WooCommerce missing.' );
 gb_ep_020_assert( function_exists( 'learn_press_get_user' ), 'LearnPress missing.' );
 gb_ep_020_assert( function_exists( 'gb_core_provider_profile' ), 'Core provider-profile API missing.' );
 
+// LearnPress protects course metadata writes in the same way as wp-admin. WP-CLI
+// starts without a current user, so establish the disposable stack administrator
+// before creating the registered course fixture.
+$runtime_original_user_id = get_current_user_id();
+wp_set_current_user( 1 );
+
 $plugin = Gulf_Breeze_Enrollment_Payment::instance();
 $catalog = Gulf_Breeze_Catalog_Cart::instance();
 $core = Gulf_Breeze_Configuration::instance();
@@ -75,6 +81,9 @@ $course_registry['adult_en'] = array(
 	'status' => 'internal_testing',
 );
 update_option( 'gb_course_registry', $course_registry, false );
+gb_ep_020_assert( 'adult_en' === get_post_meta( $course_id, '_gb_course_key', true ), 'LearnPress rejected the registered course-key fixture.' );
+$registered_course = get_option( 'gb_course_registry', array() );
+gb_ep_020_assert( $course_id === absint( $registered_course['adult_en']['learnpress_course_id'] ?? 0 ), 'Registered course fixture was not saved.' );
 
 $product = new WC_Product_Simple();
 $product->set_name( 'Native Checkout Runtime Course — English' );
@@ -231,6 +240,7 @@ gb_ep_020_assert( false !== strpos( $courses_html, '#' . $order->get_order_numbe
 gb_ep_020_assert( false !== strpos( $courses_html, 'Start/Continue Course' ), 'My Courses lacks a course access button.' );
 
 $original_wp_query = $GLOBALS['wp_query'];
+$original_wp_the_query = $GLOBALS['wp_the_query'];
 $course_query = static function ( $queried_course_id ) {
 	$query = new WP_Query();
 	$query->is_single = true;
@@ -239,16 +249,23 @@ $course_query = static function ( $queried_course_id ) {
 	return $query;
 };
 $GLOBALS['wp_query'] = $course_query( $course_id );
+$GLOBALS['wp_the_query'] = $GLOBALS['wp_query'];
+gb_ep_020_assert( is_singular( array( 'lp_course', 'lp_lesson', 'lp_quiz' ) ), 'Simulated paid-student course request is not singular.' );
+gb_ep_020_assert( $course_id === get_queried_object_id(), 'Simulated paid-student course request lost its object ID.' );
 $plugin->protect_course_objects_for_entitled_students();
 gb_ep_020_assert( ! $GLOBALS['wp_query']->is_404(), 'Paid enrolled student was converted to a 404 on the published course.' );
 
 wp_set_current_user( 0 );
 $GLOBALS['wp_query'] = $course_query( $course_id );
+$GLOBALS['wp_the_query'] = $GLOBALS['wp_query'];
+gb_ep_020_assert( is_singular( array( 'lp_course', 'lp_lesson', 'lp_quiz' ) ), 'Simulated public course request is not singular.' );
+gb_ep_020_assert( $course_id === get_queried_object_id(), 'Simulated public course request lost its object ID.' );
 $plugin->protect_course_objects_for_entitled_students();
 gb_ep_020_assert( $GLOBALS['wp_query']->is_404(), 'Public visitor could directly open the protected registered course.' );
 
 wp_set_current_user( $previous_user_id );
 $GLOBALS['wp_query'] = $original_wp_query;
+$GLOBALS['wp_the_query'] = $original_wp_the_query;
 
 $paid_price_html = $plugin->mapped_course_price_html( 'Free', get_post( $course_id ) );
 gb_ep_020_assert( false !== strpos( $paid_price_html, 'Paid' ) && false === strpos( $paid_price_html, 'Free' ), 'Paid LearnPress course still displays Free.' );
@@ -513,5 +530,7 @@ update_option(
 	),
 	false
 );
+
+wp_set_current_user( $runtime_original_user_id );
 
 echo "PASS Enrollment & Payment 0.2.0-dev-r8 focused runtime regression\n";
