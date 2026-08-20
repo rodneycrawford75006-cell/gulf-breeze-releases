@@ -202,6 +202,7 @@ $english_order->delete_meta_data( '_gb_ep_contract_expires_at_utc' );
 $english_order->save();
 $wpdb->update( $issuance_table, array( 'contract_signed_utc' => null, 'student_download_until_utc' => null ), array( 'id' => absint( $english_row['id'] ) ), array( null, null ), array( '%d' ) );
 $certificates->install_schema();
+$english_order = wc_get_order( $english[2] );
 $english_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$issuance_table} WHERE id=%d", $english_row['id'] ), ARRAY_A );
 $expected_expiry = ( new DateTimeImmutable( $english_order->get_meta( '_gb_ep_contract_signed_at_utc' ), new DateTimeZone( 'UTC' ) ) )->modify( '+1 year' )->format( 'Y-m-d H:i:s' );
 gb_cert_r3_check( 'schema backfills frozen contract dates', $english_row['contract_signed_utc'] === $english_order->get_meta( '_gb_ep_contract_signed_at_utc' ) && $english_row['student_download_until_utc'] === $expected_expiry && $english_order->get_meta( '_gb_ep_contract_expires_at_utc' ) === $expected_expiry );
