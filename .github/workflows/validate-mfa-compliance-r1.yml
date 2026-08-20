@@ -1,0 +1,88 @@
+name: Validate Gulf Breeze MFA Compliance 0.1.0-dev-r1
+
+on:
+  push:
+    branches:
+      - agent/mfa-compliance-0.1.0-dev-r1-validation
+    paths:
+      - gulf-breeze-mfa-compliance-0.1.0-dev-r1.zip
+      - gulf-breeze-mfa-compliance-0.1.0-dev-r1.sha256.txt
+      - mfa-compliance-runtime-test-0.1.0-dev-r1.php
+      - .github/workflows/validate-mfa-compliance-r1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, openssl
+          coverage: none
+
+      - name: Verify package and syntax
+        run: |
+          set -euo pipefail
+          test "$(sha256sum gulf-breeze-mfa-compliance-0.1.0-dev-r1.zip | cut -d' ' -f1)" = "c257be4a886ef2bab08f79e5b44366963c8b866c6e807d32551d9e62988266a3"
+          test "$(cat gulf-breeze-mfa-compliance-0.1.0-dev-r1.sha256.txt | cut -d' ' -f1)" = "c257be4a886ef2bab08f79e5b44366963c8b866c6e807d32551d9e62988266a3"
+          test "$(unzip -Z1 gulf-breeze-mfa-compliance-0.1.0-dev-r1.zip | sed -n '1p')" = "gulf-breeze-mfa-compliance/"
+          test "$(unzip -Z1 gulf-breeze-mfa-compliance-0.1.0-dev-r1.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-mfa-compliance/"
+          rm -rf /tmp/gb-mfa-validation
+          mkdir -p /tmp/gb-mfa-validation
+          unzip -q gulf-breeze-mfa-compliance-0.1.0-dev-r1.zip -d /tmp/gb-mfa-validation
+          python3 /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance/tests/validate_static.py
+          node --check /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance/assets/mfa.js
+          node --check /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance/assets/jquery.qrcode.min.js
+          find /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l mfa-compliance-runtime-test-0.1.0-dev-r1.php
+          ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance
+
+      - name: Install disposable exact stack
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x /tmp/wp-cli.phar
+          mkdir -p /tmp/wordpress
+          /tmp/wp-cli.phar core download --version=7.0.4 --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar config create --path=/tmp/wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --skip-check --quiet
+          /tmp/wp-cli.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8080 --title='Gulf Breeze MFA Validation' --admin_user=admin --admin_password='validation-only-password' --admin_email=validation-owner@example.invalid --skip-email --quiet
+          /tmp/wp-cli.phar plugin install woocommerce --version=11.0.1 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install learnpress --version=4.4.4 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-core-2.3.26-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install woocommerce-paypal-payments --version=4.1.2 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update ucp_options '{"status":1,"end_date_toggle":0,"whitelisted_roles":["administrator"]}' --format=json --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-mfa-compliance-0.1.0-dev-r1.zip" --activate --path=/tmp/wordpress --quiet
+          diff -qr /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance /tmp/wordpress/wp-content/plugins/gulf-breeze-mfa-compliance
+          test "$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')" = "8.4"
+          test "$(/tmp/wp-cli.phar core version --path=/tmp/wordpress)" = "7.0.4"
+          test "$(/tmp/wp-cli.phar plugin get woocommerce --field=version --path=/tmp/wordpress)" = "11.0.1"
+          test "$(/tmp/wp-cli.phar plugin get learnpress --field=version --path=/tmp/wordpress)" = "4.4.4"
+          test "$(/tmp/wp-cli.phar plugin get woocommerce-paypal-payments --field=version --path=/tmp/wordpress)" = "4.1.2"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-mfa-compliance --field=version --path=/tmp/wordpress)" = "0.1.0-dev-r1"
+
+      - name: Run exact-stack regression
+        run: |
+          set -euo pipefail
+          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/mfa-compliance-runtime-test-0.1.0-dev-r1.php" --path=/tmp/wordpress
