@@ -186,10 +186,13 @@ gb_cert_r2_check( 'serials are unique', $english_row['serial_number'] !== $spani
 $again = $certificates->maybe_issue( $english[0], $english[1] );
 gb_cert_r2_check( 'eligibility is idempotent', is_array( $again ) && $again['id'] === $english_row['id'] );
 
-gb_cert_r2_check( 'both localized emails were attempted', 2 === count( $mail ) );
-gb_cert_r2_check( 'English email contains English instructions', isset( $mail[0] ) && false !== strpos( $mail[0]['subject'], 'Your Gulf Breeze' ) && false !== strpos( $mail[0]['message'], 'What to do next' ) && false !== strpos( $mail[0]['message'], '90 days' ) );
-gb_cert_r2_check( 'Spanish email contains Spanish instructions', isset( $mail[1] ) && false !== strpos( $mail[1]['subject'], 'Su certificado' ) && false !== strpos( $mail[1]['message'], 'Qué hacer después' ) && false !== strpos( $mail[1]['message'], '90 días' ) );
-gb_cert_r2_check( 'email attachments exist at send time', isset( $mail[0], $mail[1] ) && $mail[0]['attachment_exists'] && $mail[1]['attachment_exists'] );
+$certificate_mail = array_values( array_filter( $mail, function( $message ) {
+	return false !== strpos( $message['subject'], 'ADEE-1317' );
+} ) );
+gb_cert_r2_check( 'both localized certificate emails were attempted', 2 === count( $certificate_mail ) );
+gb_cert_r2_check( 'English email contains English instructions', isset( $certificate_mail[0] ) && false !== strpos( $certificate_mail[0]['subject'], 'Your Gulf Breeze' ) && false !== strpos( $certificate_mail[0]['message'], 'What to do next' ) && false !== strpos( $certificate_mail[0]['message'], '90 days' ) );
+gb_cert_r2_check( 'Spanish email contains Spanish instructions', isset( $certificate_mail[1] ) && false !== strpos( $certificate_mail[1]['subject'], 'Su certificado' ) && false !== strpos( $certificate_mail[1]['message'], 'Qué hacer después' ) && false !== strpos( $certificate_mail[1]['message'], '90 días' ) );
+gb_cert_r2_check( 'certificate email attachments exist at send time', isset( $certificate_mail[0], $certificate_mail[1] ) && $certificate_mail[0]['attachment_exists'] && $certificate_mail[1]['attachment_exists'] );
 
 $report_method = new ReflectionMethod( $certificates, 'report_row' );
 $report = $report_method->invoke( $certificates, $english_row );
