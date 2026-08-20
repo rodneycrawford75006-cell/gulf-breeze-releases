@@ -268,7 +268,10 @@ wp_set_current_user( $previous_user_id );
 $GLOBALS['wp_query'] = $original_wp_query;
 $GLOBALS['wp_the_query'] = $original_wp_the_query;
 
+$price_user_before = get_current_user_id();
+wp_set_current_user( $user_id );
 $paid_price_html = $plugin->mapped_course_price_html( 'Free', get_post( $course_id ) );
+wp_set_current_user( $price_user_before );
 gb_ep_020_assert( false !== strpos( $paid_price_html, 'Paid' ) && false === strpos( $paid_price_html, 'Free' ), 'Paid LearnPress course still displays Free.' );
 
 $legacy_order = wc_create_order();
