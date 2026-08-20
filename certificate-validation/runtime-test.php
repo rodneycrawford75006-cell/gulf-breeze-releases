@@ -1,22 +1,22 @@
 <?php
-/** Focused disposable exact-stack validation for Gulf Breeze Certificates r2. */
+/** Focused disposable exact-stack validation for Gulf Breeze Certificates r3. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit( 1 );
 }
 
-$GLOBALS['gb_cert_r2_counts'] = array( 'passed' => 0, 'failed' => 0 );
-function gb_cert_r2_check( $name, $condition ) {
+$GLOBALS['gb_cert_r3_counts'] = array( 'passed' => 0, 'failed' => 0 );
+function gb_cert_r3_check( $name, $condition ) {
 	if ( $condition ) {
-		$GLOBALS['gb_cert_r2_counts']['passed']++;
+		$GLOBALS['gb_cert_r3_counts']['passed']++;
 		WP_CLI::log( 'PASS ' . $name );
 	} else {
-		$GLOBALS['gb_cert_r2_counts']['failed']++;
+		$GLOBALS['gb_cert_r3_counts']['failed']++;
 		WP_CLI::warning( 'FAIL ' . $name );
 	}
 }
 
-function gb_cert_r2_mapping_id( $map ) {
+function gb_cert_r3_mapping_id( $map ) {
 	return substr( hash( 'sha256', implode( ':', array(
 		absint( $map['course_id'] ),
 		sanitize_key( $map['unit_type'] ),
@@ -26,7 +26,7 @@ function gb_cert_r2_mapping_id( $map ) {
 	) ) ), 0, 12 );
 }
 
-function gb_cert_r2_add_lp_completion( $user_id, $course_id ) {
+function gb_cert_r3_add_lp_completion( $user_id, $course_id ) {
 	global $wpdb;
 	$table = $wpdb->prefix . 'learnpress_user_items';
 	$columns = $wpdb->get_results( "SHOW FULL COLUMNS FROM {$table}", ARRAY_A );
@@ -73,7 +73,7 @@ function gb_cert_r2_add_lp_completion( $user_id, $course_id ) {
 	return false !== $wpdb->insert( $table, $data );
 }
 
-function gb_cert_r2_fixture( $locale, $index ) {
+function gb_cert_r3_fixture( $locale, $index ) {
 	wp_set_current_user( 1 );
 	$course_key = 'es-US' === $locale ? 'adult_es' : 'adult_en';
 	$user_id = wp_create_user( 'gb-cert-' . $index, 'validation-password', 'gb-cert-' . $index . '@example.com' );
@@ -99,6 +99,7 @@ function gb_cert_r2_fixture( $locale, $index ) {
 	$order->update_meta_data( '_gb_ep_student_user_id', $user_id );
 	$order->update_meta_data( '_gb_ep_course_id', $course_id );
 	$order->update_meta_data( '_gb_ep_locale', $locale );
+	$order->update_meta_data( '_gb_ep_contract_signed_at_utc', gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
 	$order->update_meta_data( '_gb_ep_contract_snapshot_json', wp_json_encode( array(
 		'student' => array(
 			'legal_name' => 'Taylor Test',
@@ -127,15 +128,15 @@ function gb_cert_r2_fixture( $locale, $index ) {
 		'passed_at' => '2026-08-20 15:00:00',
 		'last_result' => array( 'score_percent' => 88, 'passed' => true ),
 	);
-	update_user_meta( $user_id, '_gbcmg_state_' . gb_cert_r2_mapping_id( $map ), $state );
-	gb_cert_r2_check( $locale . ' LearnPress completion inserted', gb_cert_r2_add_lp_completion( $user_id, $course_id ) );
+	update_user_meta( $user_id, '_gbcmg_state_' . gb_cert_r3_mapping_id( $map ), $state );
+	gb_cert_r3_check( $locale . ' LearnPress completion inserted', gb_cert_r3_add_lp_completion( $user_id, $course_id ) );
 	return array( $user_id, $course_id, $order->get_id() );
 }
 
-gb_cert_r2_check( 'plugin class loaded', class_exists( 'Gulf_Breeze_Certificates' ) );
-gb_cert_r2_check( 'plugin version is r2', defined( 'Gulf_Breeze_Certificates::VERSION' ) && '0.1.0-dev-r2' === Gulf_Breeze_Certificates::VERSION );
-gb_cert_r2_check( 'schema version installed', '0.3.0' === get_option( 'gb_certificates_schema_version' ) );
-gb_cert_r2_check( 'test mode remains enabled', 'test' === Gulf_Breeze_Certificates::MODE );
+gb_cert_r3_check( 'plugin class loaded', class_exists( 'Gulf_Breeze_Certificates' ) );
+gb_cert_r3_check( 'plugin version is r3', defined( 'Gulf_Breeze_Certificates::VERSION' ) && '0.1.0-dev-r3' === Gulf_Breeze_Certificates::VERSION );
+gb_cert_r3_check( 'schema version installed', '0.4.0' === get_option( 'gb_certificates_schema_version' ) );
+gb_cert_r3_check( 'test mode remains enabled', 'test' === Gulf_Breeze_Certificates::MODE );
 
 $under_construction_before = get_option( 'ucp_options' );
 update_option( 'gb_certificates_settings', array(
@@ -157,48 +158,94 @@ add_filter( 'pre_wp_mail', function( $pre, $atts ) use ( &$mail ) {
 	);
 	return true;
 }, 10, 2 );
-gb_cert_r2_check( 'WordPress mail interception is active', true === wp_mail( 'mail-probe@example.com', 'Validation probe', 'Validation probe' ) && 1 === count( $mail ) );
+gb_cert_r3_check( 'WordPress mail interception is active', true === wp_mail( 'mail-probe@example.com', 'Validation probe', 'Validation probe' ) && 1 === count( $mail ) );
 $mail = array();
 
 $certificates = Gulf_Breeze_Certificates::instance();
-gb_cert_r2_check( 'two mock serials imported', 2 === $certificates->import_mock_serials( 2 ) );
-$english = gb_cert_r2_fixture( 'en-US', 1 );
-$spanish = gb_cert_r2_fixture( 'es-US', 2 );
+gb_cert_r3_check( 'two mock serials imported', 2 === $certificates->import_mock_serials( 2 ) );
+$english = gb_cert_r3_fixture( 'en-US', 1 );
+$spanish = gb_cert_r3_fixture( 'es-US', 2 );
 $english_row = $certificates->maybe_issue( $english[0], $english[1] );
 $spanish_row = $certificates->maybe_issue( $spanish[0], $spanish[1] );
 WP_CLI::log( 'INFO certificate email states: ' . ( $english_row['email_status'] ?? 'missing' ) . '/' . ( $spanish_row['email_status'] ?? 'missing' ) . '; recipients: ' . ( $english_row['email_recipient'] ?? 'missing' ) . '/' . ( $spanish_row['email_recipient'] ?? 'missing' ) );
 
 foreach ( array( 'English' => $english_row, 'Spanish' => $spanish_row ) as $label => $row ) {
-	gb_cert_r2_check( "$label issuance succeeds", is_array( $row ) && ! empty( $row['id'] ) );
-	gb_cert_r2_check( "$label serial is isolated mock eight-digit value", is_array( $row ) && 1 === preg_match( '/^9[0-9]{7}$/', $row['serial_number'] ) );
-	gb_cert_r2_check( "$label PDF is preserved", is_array( $row ) && ! empty( $row['pdf_blob_b64'] ) );
+	gb_cert_r3_check( "$label issuance succeeds", is_array( $row ) && ! empty( $row['id'] ) );
+	gb_cert_r3_check( "$label serial is isolated mock eight-digit value", is_array( $row ) && 1 === preg_match( '/^9[0-9]{7}$/', $row['serial_number'] ) );
+	gb_cert_r3_check( "$label PDF is preserved", is_array( $row ) && ! empty( $row['pdf_blob_b64'] ) );
 	$pdf = is_array( $row ) ? base64_decode( $row['pdf_blob_b64'], true ) : false;
-	gb_cert_r2_check( "$label PDF hash matches preserved bytes", false !== $pdf && hash_equals( $row['pdf_sha256'], hash( 'sha256', $pdf ) ) );
-	gb_cert_r2_check( "$label template hash is recorded", is_array( $row ) && 64 === strlen( $row['template_sha256'] ) );
-	gb_cert_r2_check( "$label report deadline is 15 calendar days", is_array( $row ) && 15 * DAY_IN_SECONDS === strtotime( $row['report_due_utc'] . ' UTC' ) - strtotime( $row['issued_utc'] . ' UTC' ) );
+	gb_cert_r3_check( "$label PDF hash matches preserved bytes", false !== $pdf && hash_equals( $row['pdf_sha256'], hash( 'sha256', $pdf ) ) );
+	gb_cert_r3_check( "$label template hash is recorded", is_array( $row ) && 64 === strlen( $row['template_sha256'] ) );
+	gb_cert_r3_check( "$label report deadline is 15 calendar days", is_array( $row ) && 15 * DAY_IN_SECONDS === strtotime( $row['report_due_utc'] . ' UTC' ) - strtotime( $row['issued_utc'] . ' UTC' ) );
 	if ( false !== $pdf ) {
 		file_put_contents( '/tmp/gb-cert-' . ( 'English' === $label ? 'en' : 'es' ) . '.pdf', $pdf );
 	}
 }
 
-gb_cert_r2_check( 'language controls issuance locale', 'en-US' === $english_row['locale'] && 'es-US' === $spanish_row['locale'] );
-gb_cert_r2_check( 'serials are unique', $english_row['serial_number'] !== $spanish_row['serial_number'] );
+global $wpdb;
+$issuance_table = $wpdb->prefix . 'gb_certificate_issuances';
+$download_table = $wpdb->prefix . 'gb_certificate_download_log';
+gb_cert_r3_check( 'private download ledger table exists', $download_table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $download_table ) ) ) );
+
+foreach ( array( 'English' => array( $english_row, $english ), 'Spanish' => array( $spanish_row, $spanish ) ) as $label => $pair ) {
+	$row = $pair[0];
+	$order = wc_get_order( $pair[1][2] );
+	$signed = $order->get_meta( '_gb_ep_contract_signed_at_utc' );
+	$expected_expiry = ( new DateTimeImmutable( $signed, new DateTimeZone( 'UTC' ) ) )->modify( '+1 year' )->format( 'Y-m-d H:i:s' );
+	gb_cert_r3_check( "$label issuance freezes contract signing UTC", $signed === $row['contract_signed_utc'] );
+	gb_cert_r3_check( "$label issuance freezes exactly one calendar year", $expected_expiry === $row['student_download_until_utc'] );
+	gb_cert_r3_check( "$label order stores frozen expiration", $expected_expiry === $order->get_meta( '_gb_ep_contract_expires_at_utc' ) );
+}
+
+$english_order = wc_get_order( $english[2] );
+$english_order->delete_meta_data( '_gb_ep_contract_expires_at_utc' );
+$english_order->save();
+$wpdb->update( $issuance_table, array( 'contract_signed_utc' => null, 'student_download_until_utc' => null ), array( 'id' => absint( $english_row['id'] ) ), array( null, null ), array( '%d' ) );
+$certificates->install_schema();
+$english_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$issuance_table} WHERE id=%d", $english_row['id'] ), ARRAY_A );
+$expected_expiry = ( new DateTimeImmutable( $english_order->get_meta( '_gb_ep_contract_signed_at_utc' ), new DateTimeZone( 'UTC' ) ) )->modify( '+1 year' )->format( 'Y-m-d H:i:s' );
+gb_cert_r3_check( 'schema backfills frozen contract dates', $english_row['contract_signed_utc'] === $english_order->get_meta( '_gb_ep_contract_signed_at_utc' ) && $english_row['student_download_until_utc'] === $expected_expiry && $english_order->get_meta( '_gb_ep_contract_expires_at_utc' ) === $expected_expiry );
+
+$access_method = new ReflectionMethod( $certificates, 'student_download_access' );
+gb_cert_r3_check( 'matching active student retains access', true === $access_method->invoke( $certificates, $english_row, $english[0] ) );
+$wrong_owner = $access_method->invoke( $certificates, $english_row, $spanish[0] );
+gb_cert_r3_check( 'ownership mismatch is denied', is_wp_error( $wrong_owner ) && 'owner_mismatch' === $wrong_owner->get_error_code() );
+$expired_row = $english_row;
+$expired_row['student_download_until_utc'] = '2000-01-01 00:00:00';
+$expired = $access_method->invoke( $certificates, $expired_row, $english[0] );
+gb_cert_r3_check( 'expired student access is denied', is_wp_error( $expired ) && 'contract_expired' === $expired->get_error_code() );
+$english_order->update_meta_data( '_gb_ep_access_revoked', 'yes' );
+$english_order->save();
+$revoked = $access_method->invoke( $certificates, $english_row, $english[0] );
+gb_cert_r3_check( 'revoked enrollment is denied', is_wp_error( $revoked ) && 'enrollment_revoked' === $revoked->get_error_code() );
+$english_order->delete_meta_data( '_gb_ep_access_revoked' );
+$english_order->save();
+
+$record_method = new ReflectionMethod( $certificates, 'record_download_event' );
+$logged_success = $record_method->invoke( $certificates, $english_row, $english[0], 'student', 'success', 'student_contract_active' );
+$logged_denial = $record_method->invoke( $certificates, $english_row, $english[0], 'student', 'denied', 'contract_expired' );
+$events = $wpdb->get_results( "SELECT * FROM {$download_table} ORDER BY id DESC LIMIT 2", ARRAY_A );
+gb_cert_r3_check( 'download success and denial are appended', $logged_success && $logged_denial && 2 === count( $events ) );
+gb_cert_r3_check( 'download ledger records actor subject outcome and reason', isset( $events[0], $events[1] ) && absint( $events[0]['actor_user_id'] ) === $english[0] && absint( $events[0]['subject_user_id'] ) === $english[0] && 'denied' === $events[0]['outcome'] && 'contract_expired' === $events[0]['reason'] && 'success' === $events[1]['outcome'] && 'student_contract_active' === $events[1]['reason'] );
+
+gb_cert_r3_check( 'language controls issuance locale', 'en-US' === $english_row['locale'] && 'es-US' === $spanish_row['locale'] );
+gb_cert_r3_check( 'serials are unique', $english_row['serial_number'] !== $spanish_row['serial_number'] );
 $again = $certificates->maybe_issue( $english[0], $english[1] );
-gb_cert_r2_check( 'eligibility is idempotent', is_array( $again ) && $again['id'] === $english_row['id'] );
+gb_cert_r3_check( 'eligibility is idempotent', is_array( $again ) && $again['id'] === $english_row['id'] );
 
 $certificate_mail = array_values( array_filter( $mail, function( $message ) {
 	return false !== strpos( $message['subject'], 'ADEE-1317' );
 } ) );
-gb_cert_r2_check( 'both localized certificate emails were attempted', 2 === count( $certificate_mail ) );
-gb_cert_r2_check( 'English email contains English instructions', isset( $certificate_mail[0] ) && false !== strpos( $certificate_mail[0]['subject'], 'Your Gulf Breeze' ) && false !== strpos( $certificate_mail[0]['message'], 'What to do next' ) && false !== strpos( $certificate_mail[0]['message'], '90 days' ) );
-gb_cert_r2_check( 'Spanish email contains Spanish instructions', isset( $certificate_mail[1] ) && false !== strpos( $certificate_mail[1]['subject'], 'Su certificado' ) && false !== strpos( $certificate_mail[1]['message'], 'Qué hacer después' ) && false !== strpos( $certificate_mail[1]['message'], '90 días' ) );
-gb_cert_r2_check( 'certificate email attachments exist at send time', isset( $certificate_mail[0], $certificate_mail[1] ) && $certificate_mail[0]['attachment_exists'] && $certificate_mail[1]['attachment_exists'] );
+gb_cert_r3_check( 'both localized certificate emails were attempted', 2 === count( $certificate_mail ) );
+gb_cert_r3_check( 'English email contains English instructions', isset( $certificate_mail[0] ) && false !== strpos( $certificate_mail[0]['subject'], 'Your Gulf Breeze' ) && false !== strpos( $certificate_mail[0]['message'], 'What to do next' ) && false !== strpos( $certificate_mail[0]['message'], '90 days' ) );
+gb_cert_r3_check( 'Spanish email contains Spanish instructions', isset( $certificate_mail[1] ) && false !== strpos( $certificate_mail[1]['subject'], 'Su certificado' ) && false !== strpos( $certificate_mail[1]['message'], 'Qué hacer después' ) && false !== strpos( $certificate_mail[1]['message'], '90 días' ) );
+gb_cert_r3_check( 'certificate email attachments exist at send time', isset( $certificate_mail[0], $certificate_mail[1] ) && $certificate_mail[0]['attachment_exists'] && $certificate_mail[1]['attachment_exists'] );
 
 $report_method = new ReflectionMethod( $certificates, 'report_row' );
 $report = $report_method->invoke( $certificates, $english_row );
-gb_cert_r2_check( 'TDLR row has exactly 21 values', 21 === count( $report ) );
-gb_cert_r2_check( 'TDLR Adult values are exact', 'ADE' === $report[0] && 'ADEE' === $report[1] && 'ONLINE ADULT' === $report[4] && '6' === $report[10] );
-gb_cert_r2_check( 'TDLR non-applicable Adult fields are blank', '' === $report[12] && '' === $report[13] && '' === $report[14] && '' === $report[19] && '' === $report[20] );
+gb_cert_r3_check( 'TDLR row has exactly 21 values', 21 === count( $report ) );
+gb_cert_r3_check( 'TDLR Adult values are exact', 'ADE' === $report[0] && 'ADEE' === $report[1] && 'ONLINE ADULT' === $report[4] && '6' === $report[10] );
+gb_cert_r3_check( 'TDLR non-applicable Adult fields are blank', '' === $report[12] && '' === $report[13] && '' === $report[14] && '' === $report[19] && '' === $report[20] );
 
 wp_set_current_user( $english[0] );
 ob_start();
@@ -208,19 +255,27 @@ wp_set_current_user( $spanish[0] );
 ob_start();
 $certificates->account_certificates();
 $spanish_account = ob_get_clean();
-gb_cert_r2_check( 'student account exposes English certificate download', false !== strpos( $english_account, 'My Certificates' ) && false !== strpos( $english_account, 'Download test certificate' ) );
-gb_cert_r2_check( 'student account exposes Spanish certificate download', false !== strpos( $spanish_account, 'Mis certificados' ) && false !== strpos( $spanish_account, 'Descargar certificado de prueba' ) );
+gb_cert_r3_check( 'student account exposes English active deadline and download', false !== strpos( $english_account, 'My Certificates' ) && false !== strpos( $english_account, 'Download available until:' ) && false !== strpos( $english_account, 'Download test certificate' ) );
+gb_cert_r3_check( 'student account exposes Spanish active deadline and download', false !== strpos( $spanish_account, 'Mis certificados' ) && false !== strpos( $spanish_account, 'Descarga disponible hasta:' ) && false !== strpos( $spanish_account, 'Descargar certificado de prueba' ) );
+
+$wpdb->update( $issuance_table, array( 'student_download_until_utc' => '2000-01-01 00:00:00' ), array( 'id' => absint( $english_row['id'] ) ), array( '%s' ), array( '%d' ) );
+wp_set_current_user( $english[0] );
+ob_start();
+$certificates->account_certificates();
+$expired_account = ob_get_clean();
+gb_cert_r3_check( 'expired account suppresses download and explains cutoff', false !== strpos( $expired_account, 'The student download period has ended.' ) && false === strpos( $expired_account, 'Download test certificate' ) );
+$wpdb->update( $issuance_table, array( 'student_download_until_utc' => $expected_expiry ), array( 'id' => absint( $english_row['id'] ) ), array( '%s' ), array( '%d' ) );
 
 wp_set_current_user( 1 );
 ob_start();
 $certificates->admin_page();
 $admin = ob_get_clean();
-gb_cert_r2_check( 'administrator page renders normally', false !== strpos( $admin, 'Gulf Breeze Certificates' ) && false !== strpos( $admin, 'TEST MODE' ) && false !== strpos( $admin, 'TDLR reporting identity' ) );
-gb_cert_r2_check( 'Under Construction configuration is unchanged', $under_construction_before === get_option( 'ucp_options' ) );
+gb_cert_r3_check( 'administrator page renders issuance and download audits', false !== strpos( $admin, 'Gulf Breeze Certificates' ) && false !== strpos( $admin, 'TEST MODE' ) && false !== strpos( $admin, 'TDLR reporting identity' ) && false !== strpos( $admin, 'Student access until UTC' ) && false !== strpos( $admin, 'Certificate download audit' ) && false !== strpos( $admin, 'student_contract_active' ) && false !== strpos( $admin, 'contract_expired' ) );
+gb_cert_r3_check( 'Under Construction configuration is unchanged', $under_construction_before === get_option( 'ucp_options' ) );
 
-$passed = $GLOBALS['gb_cert_r2_counts']['passed'];
-$failed = $GLOBALS['gb_cert_r2_counts']['failed'];
+$passed = $GLOBALS['gb_cert_r3_counts']['passed'];
+$failed = $GLOBALS['gb_cert_r3_counts']['failed'];
 WP_CLI::log( "RESULT {$passed} passed, {$failed} failed" );
 if ( $failed ) {
-	WP_CLI::error( 'Focused Certificates r2 exact-stack validation failed.' );
+	WP_CLI::error( 'Focused Certificates r3 exact-stack validation failed.' );
 }

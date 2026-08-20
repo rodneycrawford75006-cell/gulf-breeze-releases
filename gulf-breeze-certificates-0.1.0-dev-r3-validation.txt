@@ -1,0 +1,31 @@
+Gulf Breeze Certificates 0.1.0-dev-r3
+Focused build and validation report
+Date: 2026-08-20
+
+Scope implemented
+- Frozen contract expiration: one calendar year from the signed enrollment timestamp.
+- Backward-compatible schema migration and backfill for existing issuances.
+- Student download access limited to the matching student and frozen contract deadline.
+- Student access blocked for refund/revocation, cancelled/failed/refunded orders, identity mismatch, missing enrollment evidence, missing expiration evidence, or void status.
+- Permanent administrator retrieval retained through the manage_options-restricted dashboard.
+- Append-only application download ledger records certificate, subject student, actor ID/role, UTC timestamp, outcome, and reason.
+- Successful PDF release fails closed if the audit record cannot be written.
+- My Certificates displays the exact deadline and bilingual access/expiration messages.
+- Existing nonce, PDF-integrity, bilingual, serial-allocation, reporting, and test-only protections preserved.
+- Email delivery code and administrator resend controls left unchanged; email troubleshooting remains deferred.
+
+Package checks
+- ZIP integrity: PASS
+- Expected plugin root and six package entries: PASS
+- English ADEE-1317 test PDF byte-identical to revision 2: PASS
+- Spanish ADEE-1317 test PDF byte-identical to revision 2: PASS
+- Both PDFs retain three Letter pages, two certificate control tokens, and visible test marking: PASS
+- Package SHA-256: 7451c0dedb250e4e0b01bb9b28eec4ac9ae15318cb7946608fde57465a210b36
+
+Focused validation result
+- 60 passed
+- 0 failed
+
+Runtime status
+- Local environment does not contain a PHP interpreter, so PHP 8.4 lint and exact-stack WordPress runtime validation are not represented by the 60 focused checks.
+- The package is built but must remain uninstalled until the separate PHP 8.4/exact-stack validation layer passes.

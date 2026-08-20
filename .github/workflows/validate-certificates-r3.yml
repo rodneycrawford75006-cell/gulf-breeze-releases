@@ -1,0 +1,95 @@
+name: Validate Gulf Breeze Certificates 0.1.0-dev-r3
+
+on:
+  push:
+    branches:
+      - agent/certificates-0.1.0-dev-r3-validation
+    paths:
+      - gulf-breeze-certificates-0.1.0-dev-r3.zip
+      - gulf-breeze-certificates-0.1.0-dev-r3.sha256
+      - certificate-validation/**
+      - gulf-breeze-certificates-0.1.0-dev-r3-validation.txt
+      - .github/workflows/validate-certificates-r3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4 and focused PDF tools
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, openssl, iconv
+          coverage: none
+
+      - name: Verify package, source templates, and PHP syntax
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          python -m pip install --quiet pypdf
+          test "$(sha256sum gulf-breeze-certificates-0.1.0-dev-r3.zip | cut -d' ' -f1)" = "7451c0dedb250e4e0b01bb9b28eec4ac9ae15318cb7946608fde57465a210b36"
+          test "$(unzip -Z1 gulf-breeze-certificates-0.1.0-dev-r3.zip | sed -n '1p')" = "gulf-breeze-certificates/"
+          test "$(unzip -Z1 gulf-breeze-certificates-0.1.0-dev-r3.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-certificates/"
+          rm -rf /tmp/gb-cert-validation
+          mkdir -p /tmp/gb-cert-validation
+          unzip -q gulf-breeze-certificates-0.1.0-dev-r3.zip -d /tmp/gb-cert-validation
+          find /tmp/gb-cert-validation/gulf-breeze-certificates -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l certificate-validation/runtime-test.php
+          GB_CERT_PLUGIN_DIR=/tmp/gb-cert-validation/gulf-breeze-certificates \
+          GB_CERT_WORKBOOK="$GITHUB_WORKSPACE/certificate-validation/de-certificate-upload-template-with-validations.xlsx" \
+          GB_CERT_SOURCE_TEMPLATE="$GITHUB_WORKSPACE/certificate-validation/ADEE-1317-texas-adult-driver-education-certificate-template.pdf" \
+          node certificate-validation/github-static.mjs
+          ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-cert-validation/gulf-breeze-certificates
+
+      - name: Install disposable exact stack
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x /tmp/wp-cli.phar
+          mkdir -p /tmp/wordpress
+          /tmp/wp-cli.phar core download --version=7.0.4 --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar config create --path=/tmp/wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --skip-check --quiet
+          /tmp/wp-cli.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8080 --title='Gulf Breeze Certificates Validation' --admin_user=admin --admin_password='validation-only-password' --admin_email=validation@example.invalid --skip-email --quiet
+          /tmp/wp-cli.phar plugin install woocommerce --version=11.0.1 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install learnpress --version=4.4.4 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-core-2.3.26-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-catalog-cart-0.1.4.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install woocommerce-paypal-payments --version=4.1.2 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.2.0-dev-r8.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update ucp_options '{"status":1,"end_date_toggle":0,"whitelisted_roles":["administrator"]}' --format=json --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-certificates-0.1.0-dev-r3.zip" --activate --path=/tmp/wordpress --quiet
+          diff -qr /tmp/gb-cert-validation/gulf-breeze-certificates /tmp/wordpress/wp-content/plugins/gulf-breeze-certificates
+          test "$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')" = "8.4"
+          test "$(/tmp/wp-cli.phar core version --path=/tmp/wordpress)" = "7.0.4"
+          test "$(/tmp/wp-cli.phar plugin get woocommerce --field=version --path=/tmp/wordpress)" = "11.0.1"
+          test "$(/tmp/wp-cli.phar plugin get learnpress --field=version --path=/tmp/wordpress)" = "4.4.4"
+          test "$(/tmp/wp-cli.phar plugin get woocommerce-paypal-payments --field=version --path=/tmp/wordpress)" = "4.1.2"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-certificates --field=version --path=/tmp/wordpress)" = "0.1.0-dev-r3"
+
+      - name: Run focused certificate issuance regression
+        run: |
+          set -euo pipefail
+          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/certificate-validation/runtime-test.php" --path=/tmp/wordpress
+          python certificate-validation/validate-issued-pdfs.py
