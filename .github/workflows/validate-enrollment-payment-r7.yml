@@ -46,7 +46,7 @@ jobs:
       - name: Verify package and PHP syntax
         run: |
           set -euo pipefail
-          test "$(sha256sum gulf-breeze-enrollment-payment-0.2.0-dev-r7.zip | cut -d' ' -f1)" = "ad69f7c7227b1b919ecaa1979b83bf4f2e641ca29a8fbed4aa255a946de00461"
+          test "$(sha256sum gulf-breeze-enrollment-payment-0.2.0-dev-r7.zip | cut -d' ' -f1)" = "2e3f27ebf9d9ac31316b5f37d412123ccf6df915501f121e7c2def53ce869cb8"
           test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r7.zip | sed -n '1p')" = "gulf-breeze-enrollment-payment/"
           test "$(unzip -Z1 gulf-breeze-enrollment-payment-0.2.0-dev-r7.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-enrollment-payment/"
           rm -rf /tmp/gb-ep-validation

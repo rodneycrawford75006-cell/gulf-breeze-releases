@@ -45,6 +45,7 @@ const checks = [
   ['onboarding idempotency retained', php.includes('META_ONBOARDING_SENT') && php.includes("'yes' === $order->get_meta( self::META_ONBOARDING_SENT )")],
   ['returning-student mail uses WooCommerce transactional sender', php.includes('send_woocommerce_transactional_email') && php.includes('new WC_Email()') && php.includes('accepted_by_woocommerce_mailer')],
   ['verified enrolled order completes automatically', php.includes('complete_enrolled_course_order') && php.includes("$order->update_status( 'completed'") && php.includes('successful student linking and LearnPress enrollment')],
+  ['existing verified Processing orders receive one-time completion sync', php.includes('maybe_complete_existing_paid_course_orders') && php.includes('gb_ep_order_completion_sync_version') && php.includes("'status' => 'processing'")],
   ['refund revocation retained', php.includes('woocommerce_order_refunded') && php.includes('revoke_access') && php.includes("delete_user_meta( $user_id, '_gb_ep_active_course_'")],
   ['test reset requires admin nonce and phrase', php.includes('current_user_can( \'manage_options\' )') && php.includes("check_admin_referer( 'gb_ep_test_reset' )") && php.includes('RESET TEST ACCOUNT')],
   ['test reset requires explicit marker and blocks admins', php.includes('_gb_ep_test_account') && php.includes('reset_marked_test_account') && php.includes("user_can( $user, 'manage_options' )")],

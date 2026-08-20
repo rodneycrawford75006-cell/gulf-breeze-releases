@@ -280,9 +280,19 @@ $self_order->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_COURSE_ID, $
 $self_order->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_LOCALE, 'en-US' );
 $self_order->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_STUDENT_USER_ID, $user_id );
 $self_order->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_PROCESSED, 'yes' );
+$self_order->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_REVOKED, 'no' );
+$self_order->update_meta_data( Gulf_Breeze_Enrollment_Payment::META_STATE, 'paid_enrolled' );
 $self_order->set_date_paid( time() );
 $self_order->set_status( 'processing' );
 $self_order->save();
+
+$migration_user_before = get_current_user_id();
+wp_set_current_user( 1 );
+delete_option( 'gb_ep_order_completion_sync_version' );
+$plugin->maybe_complete_existing_paid_course_orders();
+wp_set_current_user( $migration_user_before );
+$self_order = wc_get_order( $self_order->get_id() );
+gb_ep_020_assert( 'completed' === $self_order->get_status(), 'One-time upgrade sync did not complete an already-processed verified paid course order.' );
 
 $login_user_before = get_current_user_id();
 wp_set_current_user( 0 );
