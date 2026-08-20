@@ -54,6 +54,17 @@ gb_mfa_test_assert( ! gb_mfa_is_owner_immune( $other_admin_id ), 'immunity is li
 $student_id = wp_create_user( 'validation-student', 'validation-only-password', 'validation-student@example.invalid' );
 gb_mfa_test_assert( ! is_wp_error( $student_id ), 'student fixture created' );
 update_user_meta( $student_id, 'gb_mfa_required', 1 );
+foreach ( array(
+	'gb_student_legal_name' => 'Validation Student',
+	'gb_student_dob' => '2000-01-01',
+	'gb_student_phone' => '9725550100',
+	'gb_student_address1' => '100 Validation Way',
+	'gb_student_city' => 'Carrollton',
+	'gb_student_state' => 'TX',
+	'gb_student_zip' => '75007',
+) as $key => $value ) {
+	update_user_meta( $student_id, $key, $value );
+}
 wp_set_current_user( $student_id );
 
 $redirect = $plugin->guard_login_redirect( home_url( '/my-account/' ), home_url( '/course/' ), get_user_by( 'id', $student_id ) );
