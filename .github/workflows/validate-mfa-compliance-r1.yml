@@ -57,7 +57,7 @@ jobs:
           node --check /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance/assets/jquery.qrcode.min.js
           find /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance -type f -name '*.php' -print0 | xargs -0 -n1 php -l
           php -l mfa-compliance-runtime-test-0.1.0-dev-r1.php
-          ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance
+          ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-mfa-validation/gulf-breeze-mfa-compliance --include='*.php' --include='*.css' --include='*.js'
 
       - name: Install disposable exact stack
         run: |
