@@ -1,5 +1,5 @@
 <?php
-/** Focused disposable PHP 8.4 exact-stack validation for Test Student Fixtures r1. */
+/** Focused disposable PHP 8.4 exact-stack validation for Test Student Fixtures r2. */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit( 1 );
@@ -31,7 +31,7 @@ function gb_fixture_r1_course( $course_key, &$created_courses ) {
 	$course_id = wp_insert_post( array(
 		'post_type' => 'lp_course',
 		'post_status' => 'publish',
-		'post_title' => 'Fixture Runtime ' . ( 'adult_es' === $course_key ? 'Spanish' : 'English' ),
+		'post_title' => 'Fixture Runtime English',
 	) );
 	if ( $course_id && ! is_wp_error( $course_id ) ) {
 		update_post_meta( $course_id, '_gb_course_key', $course_key );
@@ -43,7 +43,7 @@ function gb_fixture_r1_course( $course_key, &$created_courses ) {
 
 wp_set_current_user( 1 );
 gb_fixture_r1_check( 'fixture plugin class loaded', class_exists( 'Gulf_Breeze_Test_Student_Fixtures' ) );
-gb_fixture_r1_check( 'fixture plugin version is r1', defined( 'Gulf_Breeze_Test_Student_Fixtures::VERSION' ) && '0.1.0-dev-r1' === Gulf_Breeze_Test_Student_Fixtures::VERSION );
+gb_fixture_r1_check( 'fixture plugin version is r2', defined( 'Gulf_Breeze_Test_Student_Fixtures::VERSION' ) && '0.1.0-dev-r2' === Gulf_Breeze_Test_Student_Fixtures::VERSION );
 gb_fixture_r1_check( 'administrator context is active', current_user_can( 'manage_options' ) );
 gb_fixture_r1_check( 'certificate plugin remains in test mode', class_exists( 'Gulf_Breeze_Certificates' ) && 'test' === Gulf_Breeze_Certificates::MODE );
 
@@ -53,9 +53,10 @@ $maps_before = get_option( 'gbcmg_mappings', array() );
 $certificate_settings_before = get_option( 'gb_certificates_settings', array() );
 $created_courses = array();
 $english_course_id = gb_fixture_r1_course( 'adult_en', $created_courses );
-$spanish_course_id = gb_fixture_r1_course( 'adult_es', $created_courses );
 $maps = is_array( $maps_before ) ? $maps_before : array();
-foreach ( array( $english_course_id => 910001, $spanish_course_id => 910002 ) as $course_id => $bank_id ) {
+$course_id = $english_course_id;
+$bank_id = 910001;
+if ( $course_id ) {
 	$found = false;
 	foreach ( $maps as $map ) {
 		if ( ! empty( $map['active'] ) && 'adult_final' === sanitize_key( $map['unit_type'] ?? '' ) && absint( $map['course_id'] ?? 0 ) === absint( $course_id ) ) {
@@ -92,15 +93,15 @@ $issuances = $wpdb->prefix . 'gb_certificate_issuances';
 $serials = $wpdb->prefix . 'gb_certificate_serials';
 $issued_before = absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$issuances}" ) );
 $certificates = Gulf_Breeze_Certificates::instance();
-$certificates->import_mock_serials( 2 );
+$certificates->import_mock_serials( 1 );
 $available_before = absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$serials} WHERE certificate_type='ADEE-1317' AND status='available'" ) );
-gb_fixture_r1_check( 'at least two mock certificate serials are available', $available_before >= 2 );
+gb_fixture_r1_check( 'at least one mock certificate serial is available', $available_before >= 1 );
 
 $create = new ReflectionMethod( $fixture, 'create_batch' );
-$result = $create->invoke( $fixture, array( 'english' => '', 'spanish' => '' ) );
+$result = $create->invoke( $fixture, 'gb-fixture-certificate@test.invalid' );
 $rows = is_array( $result ) && isset( $result['rows'] ) && is_array( $result['rows'] ) ? $result['rows'] : array();
 gb_fixture_r1_check( 'fixture batch completes without error', is_array( $result ) && empty( $result['error'] ) );
-gb_fixture_r1_check( 'exactly six fixtures are created', 6 === count( $rows ) );
+gb_fixture_r1_check( 'exactly five English fixtures are created', 5 === count( $rows ) );
 
 $user_ids = array_map( 'absint', wp_list_pluck( $rows, 'user_id' ) );
 $order_ids = array_map( 'absint', wp_list_pluck( $rows, 'order_id' ) );
@@ -120,7 +121,7 @@ foreach ( $rows as $row ) {
 	gb_fixture_r1_check( 'fixture order #' . absint( $row['order_id'] ) . ' is zero-dollar and synthetic', $order && 'completed' === $order->get_status() && 0.0 === (float) $order->get_total() && '' === $order->get_transaction_id() && 'yes' === $order->get_meta( '_gb_test_fixture' ) );
 	gb_fixture_r1_check( 'fixture order identity is linked', $order && $user_id === absint( $order->get_customer_id() ) && $user_id === absint( $order->get_meta( '_gb_ep_student_user_id' ) ) && absint( $row['course_id'] ) === absint( $order->get_meta( '_gb_ep_course_id' ) ) );
 }
-gb_fixture_r1_check( 'exactly two fixtures are eligible', 2 === count( $eligible_ids ) );
+gb_fixture_r1_check( 'exactly one English fixture is eligible', 1 === count( $eligible_ids ) );
 gb_fixture_r1_check( 'exactly four fixtures are negative controls', 4 === count( $blocked_ids ) );
 
 $before_reconcile_fixture_issuances = absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$issuances} WHERE user_id IN (" . implode( ',', $user_ids ) . ')' ) );
@@ -129,9 +130,9 @@ gb_fixture_r1_check( 'seeding does not directly issue certificates', 0 === $befo
 $certificates->reconcile_eligible_completions();
 $eligible_issuances = absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$issuances} WHERE user_id IN (" . implode( ',', $eligible_ids ) . ')' ) );
 $blocked_issuances = absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$issuances} WHERE user_id IN (" . implode( ',', $blocked_ids ) . ')' ) );
-gb_fixture_r1_check( 'normal reconciliation issues exactly two eligible certificates', 2 === $eligible_issuances );
+gb_fixture_r1_check( 'normal reconciliation issues exactly one English certificate', 1 === $eligible_issuances );
 gb_fixture_r1_check( 'all four negative controls remain unissued', 0 === $blocked_issuances );
-gb_fixture_r1_check( 'exactly two mock serials are allocated', $available_before - 2 === absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$serials} WHERE certificate_type='ADEE-1317' AND status='available'" ) ) );
+gb_fixture_r1_check( 'exactly one mock serial is allocated', $available_before - 1 === absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$serials} WHERE certificate_type='ADEE-1317' AND status='available'" ) ) );
 
 $fixture_mail = array_values( array_filter( $mail, function( $message ) {
 	return isset( $message['to'] ) && false !== strpos( is_array( $message['to'] ) ? implode( ',', $message['to'] ) : $message['to'], '@test.invalid' );
@@ -139,12 +140,11 @@ $fixture_mail = array_values( array_filter( $mail, function( $message ) {
 $mail_text = implode( "\n", array_map( function( $message ) {
 	return (string) ( $message['subject'] ?? '' ) . "\n" . (string) ( $message['message'] ?? '' );
 }, $fixture_mail ) );
-gb_fixture_r1_check( 'two localized certificate emails are attempted', 2 === count( $fixture_mail ) );
+gb_fixture_r1_check( 'one English certificate email is attempted', 1 === count( $fixture_mail ) );
 gb_fixture_r1_check( 'English next-step instructions are present', false !== strpos( $mail_text, 'What to do next' ) );
-gb_fixture_r1_check( 'Spanish next-step instructions are present', false !== strpos( $mail_text, 'Qué hacer después' ) );
 
 $certificates->reconcile_eligible_completions();
-gb_fixture_r1_check( 'second reconciliation is idempotent', 2 === absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$issuances} WHERE user_id IN (" . implode( ',', $eligible_ids ) . ')' ) ) );
+gb_fixture_r1_check( 'second reconciliation is idempotent', 1 === absint( $wpdb->get_var( "SELECT COUNT(*) FROM {$issuances} WHERE user_id IN (" . implode( ',', $eligible_ids ) . ')' ) ) );
 gb_fixture_r1_check( 'Under Construction configuration is unchanged', $under_construction_before === get_option( 'ucp_options' ) );
 
 // Restore the disposable exact-stack database to its pre-test state.
@@ -178,5 +178,5 @@ $passed = $GLOBALS['gb_fixture_r1_counts']['passed'];
 $failed = $GLOBALS['gb_fixture_r1_counts']['failed'];
 WP_CLI::log( "RESULT {$passed} passed, {$failed} failed" );
 if ( $failed ) {
-	WP_CLI::error( 'Focused Test Student Fixtures r1 exact-stack validation failed.' );
+	WP_CLI::error( 'Focused Test Student Fixtures r2 exact-stack validation failed.' );
 }

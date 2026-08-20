@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused source/package checks for Gulf Breeze Test Student Fixtures r1."""
+"""Focused source/package checks for Gulf Breeze Test Student Fixtures r2."""
 
 from pathlib import Path
 import hashlib
@@ -43,7 +43,7 @@ readme = readme_bytes.decode("utf-8")
 
 check("plugin source is available", bool(source_bytes))
 check("readme is available", bool(readme_bytes))
-check("version is r1", "Version: 0.1.0-dev-r1" in source and "const VERSION = '0.1.0-dev-r1'" in source)
+check("version is r2", "Version: 0.1.0-dev-r2" in source and "const VERSION = '0.1.0-dev-r2'" in source)
 check("direct access is blocked", "if ( ! defined( 'ABSPATH' ) )" in source)
 check("admin page requires manage_options", source.count("current_user_can( 'manage_options' )") >= 3)
 check("POST uses a nonce", "check_admin_referer( 'gb_create_test_student_fixtures' )" in source)
@@ -54,8 +54,9 @@ check("WooCommerce dependency gate exists", "class_exists( 'WooCommerce' )" in s
 check("LearnPress dependency gate exists", "UserCourseModel" in source)
 check("enrollment dependency gate exists", "Gulf_Breeze_Enrollment_Payment" in source)
 check("mastery dependency gate exists", "GulfBreeze_Course_Mastery_Gate" in source)
-check("six controlled profiles exist", len(re.findall(r"array\( 'slug' =>", source)) == 6)
-check("English and Spanish eligible profiles exist", "eligible-en" in source and "eligible-es" in source)
+check("five controlled English profiles exist", len(re.findall(r"array\( 'slug' =>", source)) == 5)
+check("English eligible profile exists", "eligible-en" in source)
+check("unfinished Spanish course is not required", "eligible-es" not in source and "adult_es" not in source)
 check("two deliberate partial-gate controls exist", "final-only" in source and "complete-no-final" in source)
 check("accounts are marked disposable", "update_user_meta( $user_id, self::MARKER, 'yes' )" in source)
 check("fixture accounts cannot be administrators", "user_can( $user_id, 'manage_options' )" in source)
@@ -78,7 +79,7 @@ check("mail filters are removed", "remove_filter( $filter, '__return_false', 999
 check("existing Under Construction settings are never changed", "update_option( 'ucp_options'" not in source and "delete_option( 'ucp_options'" not in source)
 check("no user/order deletion exists", "wp_delete_user(" not in source and "wp_delete_post(" not in source and "delete_order(" not in source)
 check("no live install or publication code exists", "plugins_api(" not in source and "GitHub" not in source)
-check("readme documents exactly two expected issuances", "Exactly the two eligible fixture students" in readme)
+check("readme documents exactly one expected issuance", "Exactly one English fixture student" in readme)
 
 # Basic delimiter balance is intentionally secondary to PHP 8.4 lint on the exact stack.
 for opening, closing, label in (("(", ")", "parentheses"), ("{", "}", "braces"), ("[", "]", "brackets")):
