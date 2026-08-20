@@ -244,6 +244,7 @@ $original_wp_the_query = $GLOBALS['wp_the_query'];
 $course_query = static function ( $queried_course_id ) {
 	$query = new WP_Query();
 	$query->is_single = true;
+	$query->is_singular = true;
 	$query->queried_object = get_post( $queried_course_id );
 	$query->queried_object_id = absint( $queried_course_id );
 	return $query;
