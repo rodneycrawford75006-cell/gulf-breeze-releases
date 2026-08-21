@@ -65,6 +65,8 @@ jobs:
           /tmp/wp-cli.phar core download --version=7.1 --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar config create --path=/tmp/wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --skip-check --quiet
           /tmp/wp-cli.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8080 --title='Gulf Breeze Site Protection Validation' --admin_user=admin --admin_password='validation-only-password' --admin_email=validation@example.invalid --skip-email --quiet
+          /tmp/wp-cli.phar option update home http://127.0.0.1:8080 --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update siteurl http://127.0.0.1:8080 --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install woocommerce --version=10.8.1 --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install learnpress --version=4.4.1 --activate --path=/tmp/wordpress --quiet
           /tmp/wp-cli.phar plugin install woocommerce-paypal-payments --version=4.1.2 --activate --path=/tmp/wordpress --quiet
