@@ -137,7 +137,7 @@ jobs:
           ! grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-login.html
 
           curl -fsS -c /tmp/gbsp-admin.cookies -d 'log=admin' -d 'pwd=validation-only-password' -d 'wp-submit=Log In' -d "redirect_to=http://127.0.0.1:8080/?page_id=$page_id" http://127.0.0.1:8080/wp-login.php >/tmp/gbsp-admin-login.html
-          admin_status=$(curl -sS -b /tmp/gbsp-admin.cookies -o /tmp/gbsp-admin.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
+          admin_status=$(curl -sSL -b /tmp/gbsp-admin.cookies -o /tmp/gbsp-admin.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
           echo "admin_status=$admin_status"
           test "$admin_status" = "200"
           grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-admin.html
@@ -145,7 +145,7 @@ jobs:
           ! grep -Fqi 'under construction mode is enabled' /tmp/gbsp-admin.html
 
           curl -fsS -c /tmp/gbsp-student.cookies -d 'log=student' -d 'pwd=student-validation-password' -d 'wp-submit=Log In' -d "redirect_to=http://127.0.0.1:8080/?page_id=$page_id" http://127.0.0.1:8080/wp-login.php >/tmp/gbsp-student-login.html
-          student_status=$(curl -sS -b /tmp/gbsp-student.cookies -o /tmp/gbsp-student.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
+          student_status=$(curl -sSL -b /tmp/gbsp-student.cookies -o /tmp/gbsp-student.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
           echo "student_status=$student_status"
           test "$student_status" = "200"
           grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-student.html
@@ -153,7 +153,7 @@ jobs:
 
           open_until=$(( $(date +%s) + 900 ))
           /tmp/wp-cli.phar option update gb_site_protection_settings "{\"enabled\":1,\"public_open_until\":$open_until}" --format=json --path=/tmp/wordpress --quiet
-          test "$(curl -sS -o /tmp/gbsp-window.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")" = "200"
+          test "$(curl -sSL -o /tmp/gbsp-window.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")" = "200"
           grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-window.html
 
           expired=$(( $(date +%s) - 1 ))
@@ -162,5 +162,5 @@ jobs:
           grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-expired.html
 
           /tmp/wp-cli.phar option update gb_site_protection_settings '{"enabled":0,"public_open_until":0}' --format=json --path=/tmp/wordpress --quiet
-          test "$(curl -sS -o /tmp/gbsp-disabled.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")" = "200"
+          test "$(curl -sSL -o /tmp/gbsp-disabled.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")" = "200"
           grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-disabled.html
