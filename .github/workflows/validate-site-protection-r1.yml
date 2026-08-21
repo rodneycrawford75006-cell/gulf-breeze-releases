@@ -89,15 +89,21 @@ jobs:
           set -euo pipefail
           page_id=$(/tmp/wp-cli.phar post create --post_type=page --post_status=publish --post_title='Protected Runtime Portal' --post_content='GBSP-AUTHENTICATED-CONTENT' --porcelain --path=/tmp/wordpress)
           /tmp/wp-cli.phar user create student student@example.invalid --role=subscriber --user_pass='student-validation-password' --path=/tmp/wordpress --quiet
-          /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress >/tmp/gbsp-wp-server.log 2>&1 &
+          php -S 127.0.0.1:8080 -t /tmp/wordpress >/tmp/gbsp-wp-server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          server_ready=0
           for attempt in $(seq 1 20); do
             if curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null; then
+              server_ready=1
               break
             fi
             sleep 1
           done
+          if [ "$server_ready" != "1" ]; then
+            cat /tmp/gbsp-wp-server.log
+            exit 1
+          fi
 
           guest_status=$(curl -sS -D /tmp/gbsp-guest.headers -o /tmp/gbsp-guest.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
           test "$guest_status" = "503"
@@ -108,7 +114,7 @@ jobs:
           ! grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-guest.html
 
           test "$(curl -sS -o /tmp/gbsp-login.html -w '%{http_code}' http://127.0.0.1:8080/wp-login.php)" = "200"
-          test "$(curl -sS -o /tmp/gbsp-rest.json -w '%{http_code}' http://127.0.0.1:8080/wp-json/)" = "200"
+          test "$(curl -sS -o /tmp/gbsp-rest.json -w '%{http_code}' 'http://127.0.0.1:8080/?rest_route=/')" = "200"
           ! grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-login.html
 
           curl -fsS -c /tmp/gbsp-admin.cookies -d 'log=admin' -d 'pwd=validation-only-password' -d 'wp-submit=Log In' -d "redirect_to=http://127.0.0.1:8080/?page_id=$page_id" http://127.0.0.1:8080/wp-login.php >/tmp/gbsp-admin-login.html
