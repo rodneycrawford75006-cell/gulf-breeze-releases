@@ -1,0 +1,139 @@
+name: Validate Gulf Breeze Site Protection 0.1.0-dev-r1
+
+on:
+  push:
+    branches:
+      - agent/site-protection-0.1.0-dev-r1-validation
+    paths:
+      - gulf-breeze-site-protection-0.1.0-dev-r1.zip
+      - gulf-breeze-site-protection-0.1.0-dev-r1.sha256
+      - gulf-breeze-site-protection-0.1.0-dev-r1-validation.txt
+      - site-protection-validation/**
+      - .github/workflows/validate-site-protection-r1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, openssl
+          coverage: none
+
+      - name: Verify package, branding, and PHP syntax
+        run: |
+          set -euo pipefail
+          test "$(sha256sum gulf-breeze-site-protection-0.1.0-dev-r1.zip | cut -d' ' -f1)" = "cf74fcdfc4b4b684dfab9d9188e6a6ea856004de239de7a8ad005c0daa96566d"
+          test "$(unzip -Z1 gulf-breeze-site-protection-0.1.0-dev-r1.zip | sed -n '1p')" = "gulf-breeze-site-protection/"
+          test "$(unzip -Z1 gulf-breeze-site-protection-0.1.0-dev-r1.zip | grep -E '^[^/]+/$' | sort -u)" = "gulf-breeze-site-protection/"
+          rm -rf /tmp/gb-site-protection-validation
+          mkdir -p /tmp/gb-site-protection-validation
+          unzip -q gulf-breeze-site-protection-0.1.0-dev-r1.zip -d /tmp/gb-site-protection-validation
+          find /tmp/gb-site-protection-validation/gulf-breeze-site-protection -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          GB_SITE_PROTECTION_PLUGIN_DIR=/tmp/gb-site-protection-validation/gulf-breeze-site-protection python3 site-protection-validation/validate-r1.py
+          ! grep -RniE 'Drive Smart|drivesmart' /tmp/gb-site-protection-validation/gulf-breeze-site-protection
+
+      - name: Install disposable exact stack
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x /tmp/wp-cli.phar
+          mkdir -p /tmp/wordpress
+          /tmp/wp-cli.phar core download --version=7.1 --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar config create --path=/tmp/wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --skip-check --quiet
+          /tmp/wp-cli.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8080 --title='Gulf Breeze Site Protection Validation' --admin_user=admin --admin_password='validation-only-password' --admin_email=validation@example.invalid --skip-email --quiet
+          /tmp/wp-cli.phar plugin install woocommerce --version=10.8.1 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install learnpress --version=4.4.1 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install woocommerce-paypal-payments --version=4.1.2 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-core-2.3.26-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-catalog-cart-0.1.4.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.2.0-dev-r8.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-certificates-0.1.0-dev-r3.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install under-construction-page --version=4.05 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-site-protection-0.1.0-dev-r1.zip" --activate --path=/tmp/wordpress --quiet
+          test "$(/tmp/wp-cli.phar plugin is-active under-construction-page --path=/tmp/wordpress; echo $?)" = "0"
+          /tmp/wp-cli.phar plugin deactivate under-construction-page --path=/tmp/wordpress --quiet
+          diff -qr /tmp/gb-site-protection-validation/gulf-breeze-site-protection /tmp/wordpress/wp-content/plugins/gulf-breeze-site-protection
+          test "$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')" = "8.4"
+          test "$(/tmp/wp-cli.phar core version --path=/tmp/wordpress)" = "7.1"
+          test "$(/tmp/wp-cli.phar plugin get woocommerce --field=version --path=/tmp/wordpress)" = "10.8.1"
+          test "$(/tmp/wp-cli.phar plugin get learnpress --field=version --path=/tmp/wordpress)" = "4.4.1"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-site-protection --field=version --path=/tmp/wordpress)" = "0.1.0-dev-r1"
+          test "$(/tmp/wp-cli.phar option pluck gb_site_protection_settings enabled --path=/tmp/wordpress)" = "1"
+
+      - name: Verify logged-out protection and authenticated freedom
+        run: |
+          set -euo pipefail
+          page_id=$(/tmp/wp-cli.phar post create --post_type=page --post_status=publish --post_title='Protected Runtime Portal' --post_content='GBSP-AUTHENTICATED-CONTENT' --porcelain --path=/tmp/wordpress)
+          /tmp/wp-cli.phar user create student student@example.invalid --role=subscriber --user_pass='student-validation-password' --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar server --host=127.0.0.1 --port=8080 --path=/tmp/wordpress >/tmp/gbsp-wp-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          guest_status=$(curl -sS -D /tmp/gbsp-guest.headers -o /tmp/gbsp-guest.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
+          test "$guest_status" = "503"
+          grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-guest.html
+          grep -Fq 'Student sign in / Iniciar sesión' /tmp/gbsp-guest.html
+          grep -Eiq '^Cache-Control:.*no-store' /tmp/gbsp-guest.headers
+          grep -Eiq '^X-Robots-Tag: noindex' /tmp/gbsp-guest.headers
+          ! grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-guest.html
+
+          test "$(curl -sS -o /tmp/gbsp-login.html -w '%{http_code}' http://127.0.0.1:8080/wp-login.php)" = "200"
+          test "$(curl -sS -o /tmp/gbsp-rest.json -w '%{http_code}' http://127.0.0.1:8080/wp-json/)" = "200"
+          ! grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-login.html
+
+          curl -fsS -c /tmp/gbsp-admin.cookies -d 'log=admin' -d 'pwd=validation-only-password' -d 'wp-submit=Log In' -d "redirect_to=http://127.0.0.1:8080/?page_id=$page_id" http://127.0.0.1:8080/wp-login.php >/tmp/gbsp-admin-login.html
+          admin_status=$(curl -sS -b /tmp/gbsp-admin.cookies -o /tmp/gbsp-admin.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
+          test "$admin_status" = "200"
+          grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-admin.html
+          ! grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-admin.html
+          ! grep -Fqi 'under construction mode is enabled' /tmp/gbsp-admin.html
+
+          curl -fsS -c /tmp/gbsp-student.cookies -d 'log=student' -d 'pwd=student-validation-password' -d 'wp-submit=Log In' -d "redirect_to=http://127.0.0.1:8080/?page_id=$page_id" http://127.0.0.1:8080/wp-login.php >/tmp/gbsp-student-login.html
+          student_status=$(curl -sS -b /tmp/gbsp-student.cookies -o /tmp/gbsp-student.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
+          test "$student_status" = "200"
+          grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-student.html
+          ! grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-student.html
+
+          open_until=$(( $(date +%s) + 900 ))
+          /tmp/wp-cli.phar option update gb_site_protection_settings "{\"enabled\":1,\"public_open_until\":$open_until}" --format=json --path=/tmp/wordpress --quiet
+          test "$(curl -sS -o /tmp/gbsp-window.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")" = "200"
+          grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-window.html
+
+          expired=$(( $(date +%s) - 1 ))
+          /tmp/wp-cli.phar option update gb_site_protection_settings "{\"enabled\":1,\"public_open_until\":$expired}" --format=json --path=/tmp/wordpress --quiet
+          test "$(curl -sS -o /tmp/gbsp-expired.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")" = "503"
+          grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-expired.html
+
+          /tmp/wp-cli.phar option update gb_site_protection_settings '{"enabled":0,"public_open_until":0}' --format=json --path=/tmp/wordpress --quiet
+          test "$(curl -sS -o /tmp/gbsp-disabled.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")" = "200"
+          grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-disabled.html

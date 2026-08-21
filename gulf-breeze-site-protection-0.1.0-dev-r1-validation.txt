@@ -1,0 +1,30 @@
+PASS revision identity is consistent
+PASS mixed PHP and HTML delimiters are balanced
+PASS first activation defaults to protected
+PASS front-end protection is registered
+PASS every authenticated user bypasses before protection logic
+PASS only non-exempt logged-out requests render protection
+PASS WordPress AJAX bypasses protection
+PASS WordPress cron bypasses protection
+PASS REST and webhook routes bypasses protection
+PASS XML-RPC bypasses protection
+PASS WP-CLI bypasses protection
+PASS WooCommerce API callbacks bypasses protection
+PASS WooCommerce AJAX callbacks bypasses protection
+PASS login and password reset bypasses protection
+PASS construction response is an explicit temporary 503
+PASS construction response cannot be reused as an authenticated page
+PASS construction response is excluded from indexing
+PASS bilingual student sign-in remains available
+PASS handle_save is capability and nonce gated
+PASS handle_open_window is capability and nonce gated
+PASS handle_close_window is capability and nonce gated
+PASS timed windows are bounded to approved durations
+PASS public window closes automatically without cron
+PASS control is limited to a dedicated settings page
+PASS plugin adds no global administrator or student notice
+PASS package contains only Gulf Breeze branding
+PASS no public bypass token or cookie exists
+PASS settings do not mutate course or order data
+PASS README documents no-gap replacement
+RESULT 29 passed, 0 failed
