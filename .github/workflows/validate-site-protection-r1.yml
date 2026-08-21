@@ -86,12 +86,28 @@ jobs:
 
       - name: Verify logged-out protection and authenticated freedom
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           page_id=$(/tmp/wp-cli.phar post create --post_type=page --post_status=publish --post_title='Protected Runtime Portal' --post_content='GBSP-AUTHENTICATED-CONTENT' --porcelain --path=/tmp/wordpress)
           /tmp/wp-cli.phar user create student student@example.invalid --role=subscriber --user_pass='student-validation-password' --path=/tmp/wordpress --quiet
           php -S 127.0.0.1:8080 -t /tmp/wordpress >/tmp/gbsp-wp-server.log 2>&1 &
           server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          finish_http_test() {
+            status=$?
+            trap - EXIT
+            kill "$server_pid" 2>/dev/null || true
+            if [ "$status" -ne 0 ]; then
+              echo '--- PHP server log ---'
+              cat /tmp/gbsp-wp-server.log || true
+              for diagnostic in /tmp/gbsp-guest.headers /tmp/gbsp-guest.html /tmp/gbsp-login.html /tmp/gbsp-rest.json /tmp/gbsp-admin.html /tmp/gbsp-student.html /tmp/gbsp-window.html /tmp/gbsp-expired.html /tmp/gbsp-disabled.html; do
+                if [ -f "$diagnostic" ]; then
+                  echo "--- $diagnostic ---"
+                  head -80 "$diagnostic"
+                fi
+              done
+            fi
+            exit "$status"
+          }
+          trap finish_http_test EXIT
           server_ready=0
           for attempt in $(seq 1 20); do
             if curl -fsS http://127.0.0.1:8080/wp-login.php >/dev/null; then
@@ -106,6 +122,7 @@ jobs:
           fi
 
           guest_status=$(curl -sS -D /tmp/gbsp-guest.headers -o /tmp/gbsp-guest.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
+          echo "guest_status=$guest_status"
           test "$guest_status" = "503"
           grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-guest.html
           grep -Fq 'Student sign in / Iniciar sesión' /tmp/gbsp-guest.html
@@ -119,6 +136,7 @@ jobs:
 
           curl -fsS -c /tmp/gbsp-admin.cookies -d 'log=admin' -d 'pwd=validation-only-password' -d 'wp-submit=Log In' -d "redirect_to=http://127.0.0.1:8080/?page_id=$page_id" http://127.0.0.1:8080/wp-login.php >/tmp/gbsp-admin-login.html
           admin_status=$(curl -sS -b /tmp/gbsp-admin.cookies -o /tmp/gbsp-admin.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
+          echo "admin_status=$admin_status"
           test "$admin_status" = "200"
           grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-admin.html
           ! grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-admin.html
@@ -126,6 +144,7 @@ jobs:
 
           curl -fsS -c /tmp/gbsp-student.cookies -d 'log=student' -d 'pwd=student-validation-password' -d 'wp-submit=Log In' -d "redirect_to=http://127.0.0.1:8080/?page_id=$page_id" http://127.0.0.1:8080/wp-login.php >/tmp/gbsp-student-login.html
           student_status=$(curl -sS -b /tmp/gbsp-student.cookies -o /tmp/gbsp-student.html -w '%{http_code}' "http://127.0.0.1:8080/?page_id=$page_id")
+          echo "student_status=$student_status"
           test "$student_status" = "200"
           grep -Fq 'GBSP-AUTHENTICATED-CONTENT' /tmp/gbsp-student.html
           ! grep -Fq 'Something bright is on the horizon.' /tmp/gbsp-student.html
