@@ -1,0 +1,40 @@
+Gulf Breeze SEO Foundation 0.1.0-dev-r5
+Local validation report — 2026-08-23
+
+Baseline
+- Exact r4 source matched the checksum-verified r4 ZIP byte-for-byte.
+- r4 ZIP SHA-256 verification: PASS.
+
+Controlled r5 change
+- Plugin header and runtime version advanced from r4 to r5.
+- PG-013 maps WordPress slug texas-parent-taught-drivers-ed-guide to:
+  /texas-parent-taught-drivers-ed-guide/
+- PG-014 maps WordPress slug guia-de-educacion-vial-impartida-por-padres-en-texas to:
+  /es/guia-de-educacion-vial-impartida-por-padres-en-texas/
+- Reciprocal en-US/es-US alternate paths and x-default-to-English behavior retained.
+- Controlled English/Spanish titles, descriptions, Open Graph locales and WebPage names added.
+- No other runtime behavior changed.
+
+Local validation
+- Static controlled-token, brace-balance, schema, robots, sitemap and entity validator: PASS.
+- Focused PG-013/PG-014 canonical, alternate, language, Open Graph, H1/schema-name, title-length and description-length validator: PASS.
+- Ten authority-page mappings detected: PASS.
+- Course schema absent: PASS.
+- FAQ schema absent: PASS.
+- Meta-keywords absent: PASS.
+- Blocked authorization-dependent claim scan: PASS.
+- Legacy brand and SAMPLE-product token scan: PASS.
+- ZIP integrity and exact two-file package layout: PASS.
+
+Environment limitation
+- This workspace does not expose a PHP interpreter, Docker, Podman or Composer.
+- The PHP 8.4 lint and exact-stack WordPress runtime test therefore remain pending for the public validation-branch workflow. That workflow requires separate authorization before any upload or push.
+
+Package
+- gulf-breeze-seo-foundation-0.1.0-dev-r5.zip
+- SHA-256: 2589d1483ccca406d127a1ed3317a45688066586e78af306c0db69bad1657d66
+- ZIP contents:
+  gulf-breeze-seo-foundation/gulf-breeze-seo-foundation.php
+  gulf-breeze-seo-foundation/readme.txt
+
+No site action was taken. Nothing was uploaded, installed, replaced, activated or published. Site Protection was not changed.

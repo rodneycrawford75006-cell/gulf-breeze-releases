@@ -1,0 +1,99 @@
+name: Validate Gulf Breeze SEO Foundation 0.1.0-dev-r5
+
+on:
+  push:
+    branches:
+      - agent/seo-foundation-0.1.0-dev-r5-validation
+    paths:
+      - gulf-breeze-seo-foundation-0.1.0-dev-r5.zip
+      - gulf-breeze-seo-foundation-0.1.0-dev-r5.zip.sha256
+      - gulf-breeze-seo-foundation-0.1.0-dev-r5-validation.txt
+      - seo-foundation-validation/**
+      - .github/workflows/validate-seo-foundation-r5.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wordpress
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mysqli, openssl
+          coverage: none
+
+      - name: Verify package, checksum, PHP syntax, mappings, and branding
+        run: |
+          set -euo pipefail
+          sha256sum -c gulf-breeze-seo-foundation-0.1.0-dev-r5.zip.sha256
+          test "$(unzip -Z1 gulf-breeze-seo-foundation-0.1.0-dev-r5.zip)" = $'gulf-breeze-seo-foundation/gulf-breeze-seo-foundation.php\ngulf-breeze-seo-foundation/readme.txt'
+          rm -rf /tmp/gb-seo-r5
+          mkdir -p /tmp/gb-seo-r5
+          unzip -q gulf-breeze-seo-foundation-0.1.0-dev-r5.zip -d /tmp/gb-seo-r5
+          find /tmp/gb-seo-r5/gulf-breeze-seo-foundation -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          php -l seo-foundation-validation/runtime-stubs-r5.php
+          php -l seo-foundation-validation/exact-stack-r5.php
+          GB_SEO_PLUGIN_PHP=/tmp/gb-seo-r5/gulf-breeze-seo-foundation/gulf-breeze-seo-foundation.php node seo-foundation-validation/static-r5.mjs
+          GB_SEO_PLUGIN_PHP=/tmp/gb-seo-r5/gulf-breeze-seo-foundation/gulf-breeze-seo-foundation.php node seo-foundation-validation/mapping-r5.mjs
+          GB_SEO_PLUGIN_PHP=/tmp/gb-seo-r5/gulf-breeze-seo-foundation/gulf-breeze-seo-foundation.php php seo-foundation-validation/runtime-stubs-r5.php
+          ! grep -RniE 'Drive Smart|drivesmart|SAMPLE' /tmp/gb-seo-r5/gulf-breeze-seo-foundation
+          ! grep -RniE 'TDLR-approved|approved TDLR course number|same-day certificate|guaranteed certificate' /tmp/gb-seo-r5/gulf-breeze-seo-foundation
+
+      - name: Install disposable exact stack
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x /tmp/wp-cli.phar
+          mkdir -p /tmp/wordpress
+          /tmp/wp-cli.phar core download --version=7.1 --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar config create --path=/tmp/wordpress --dbname=wordpress --dbuser=root --dbpass=root --dbhost=127.0.0.1:3306 --skip-check --quiet
+          /tmp/wp-cli.phar core install --path=/tmp/wordpress --url=http://127.0.0.1:8080 --title='Gulf Breeze SEO Foundation Validation' --admin_user=admin --admin_password='validation-only-password' --admin_email=validation@example.invalid --skip-email --quiet
+          /tmp/wp-cli.phar option update home http://127.0.0.1:8080 --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar option update siteurl http://127.0.0.1:8080 --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install woocommerce --version=10.8.1 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install learnpress --version=4.4.1 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install woocommerce-paypal-payments --version=4.1.2 --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-core-2.3.26-dev-r2.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-catalog-cart-0.1.4.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-enrollment-payment-0.2.0-dev-r8.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-certificates-0.1.0-dev-r3.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-site-protection-0.1.0-dev-r1.zip" --activate --path=/tmp/wordpress --quiet
+          /tmp/wp-cli.phar plugin install "$GITHUB_WORKSPACE/gulf-breeze-seo-foundation-0.1.0-dev-r5.zip" --activate --path=/tmp/wordpress --quiet
+          diff -qr /tmp/gb-seo-r5/gulf-breeze-seo-foundation /tmp/wordpress/wp-content/plugins/gulf-breeze-seo-foundation
+          test "$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')" = "8.4"
+          test "$(/tmp/wp-cli.phar core version --path=/tmp/wordpress)" = "7.1"
+          test "$(/tmp/wp-cli.phar plugin get woocommerce --field=version --path=/tmp/wordpress)" = "10.8.1"
+          test "$(/tmp/wp-cli.phar plugin get learnpress --field=version --path=/tmp/wordpress)" = "4.4.1"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-site-protection --field=version --path=/tmp/wordpress)" = "0.1.0-dev-r1"
+          test "$(/tmp/wp-cli.phar option pluck gb_site_protection_settings enabled --path=/tmp/wordpress)" = "1"
+          test "$(/tmp/wp-cli.phar plugin get gulf-breeze-seo-foundation --field=version --path=/tmp/wordpress)" = "0.1.0-dev-r5"
+
+      - name: Run exact-stack WordPress metadata validation
+        run: |
+          set -euo pipefail
+          before_courses=$(/tmp/wp-cli.phar post list --post_type=lp_course --format=count --path=/tmp/wordpress)
+          /tmp/wp-cli.phar eval-file "$GITHUB_WORKSPACE/seo-foundation-validation/exact-stack-r5.php" --path=/tmp/wordpress
+          after_courses=$(/tmp/wp-cli.phar post list --post_type=lp_course --format=count --path=/tmp/wordpress)
+          test "$before_courses" = "$after_courses"
+          test "$(/tmp/wp-cli.phar option pluck gb_site_protection_settings enabled --path=/tmp/wordpress)" = "1"
